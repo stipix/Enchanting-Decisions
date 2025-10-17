@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "stipix.enchanting_decisions.mixin.client",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+  ]
+}
