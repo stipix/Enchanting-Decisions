@@ -22,7 +22,6 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldEvents;
-import stipix.enchanting_decisions.ModComponents;
 
 public class CustomGrindstoneScreenHandler extends ScreenHandler {
     public static final int field_30793 = 35;
