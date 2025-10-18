@@ -13,6 +13,7 @@ import net.minecraft.block.EnchantingTableBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.ChiseledBookshelfBlockEntity;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.EnchantableComponent;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -35,9 +36,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
-import org.spongepowered.asm.mixin.Unique;
 
 public class CustomEnchantmentScreenHandler extends ScreenHandler{
     static final Identifier EMPTY_LAPIS_LAZULI_SLOT_TEXTURE = Identifier.ofVanilla("container/slot/lapis_lazuli");
@@ -55,8 +54,7 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
     private static int[] enchantment;//carries the ID's fo each enchantment that can be used
     private static int[] enchantmentTier;//carries the tier of the enchantment (like the II in Unbreaking II)
     private static int[] selectedTier;//carries the tier of the enchantment (like the II in Unbreaking II)
-    public Property fuelLevel;//value between 0-255
-    public Property usedEnchantable;
+    public Property usedEnchantable = Property.create();
 
 
     public CustomEnchantmentScreenHandler(int syncId, PlayerInventory playerInventory, BlockPos pos) {
@@ -74,57 +72,56 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
 
         CustomEnchantmentScreenHandler handler = this;
 
-            enchantment = new int[16];
-            enchantmentTier = new int[16];
-            selectedTier = new int[16];
-            newinventory = new SimpleInventory(3){
-                @Override
-                public void markDirty() {
-                    super.markDirty();
-                    handler.onContentChanged(this);
-                }
-            };;
-            for(int i = 0; i < 16; i++) {
-                enchantment[i] = -1;
-                enchantmentTier[i] = 0;
-                selectedTier[i] = 0;
+        enchantment = new int[16];
+        enchantmentTier = new int[16];
+        selectedTier = new int[16];
+        newinventory = new SimpleInventory(3){
+            @Override
+            public void markDirty() {
+                super.markDirty();
+                handler.onContentChanged(this);
             }
-            this.addSlot(new Slot(this.newinventory, 0, 15, 46) {
-                @Override
-                public int getMaxItemCount() {
-                    return 1;
-                }
-            });
-            this.addSlot(new Slot(this.newinventory, 1, 171, 4) {
-                @Override
-                public boolean canInsert(ItemStack stack) {
-                    return stack.isOf(Items.LAPIS_LAZULI);
-                }
+        };;
+        for(int i = 0; i < 16; i++) {
+            enchantment[i] = -1;
+            enchantmentTier[i] = 0;
+            selectedTier[i] = 0;
+        }
+        this.addSlot(new Slot(this.newinventory, 0, 15, 46) {
+            @Override
+            public int getMaxItemCount() {
+                return 1;
+            }
+        });
+        this.addSlot(new Slot(this.newinventory, 1, 171, 4) {
+            @Override
+            public boolean canInsert(ItemStack stack) {
+                return stack.isOf(Items.LAPIS_LAZULI);
+            }
 
 
-                @Override
-                public Identifier getBackgroundSprite() {
-                    return CustomEnchantmentScreenHandler.EMPTY_LAPIS_LAZULI_SLOT_TEXTURE;
-                }
-            });
-            this.addSlot(new Slot(this.newinventory, 2, 171, 46) {
-                @Override
-                public boolean canInsert(ItemStack stack) {
-                    return false;
-                }
-            });
-            this.fuelLevel = Property.create();
-            this.addProperty(this.fuelLevel);
-            this.addPlayerSlots(playerInventory, 16, 89);
-            for(int i = 0; i < 16; i++) {
-                this.addProperty(Property.create(this.enchantment, i));
+            @Override
+            public Identifier getBackgroundSprite() {
+                return CustomEnchantmentScreenHandler.EMPTY_LAPIS_LAZULI_SLOT_TEXTURE;
             }
-            for(int i = 0; i < 16; i++) {
-                this.addProperty(Property.create(this.enchantmentTier, i));
+        });
+        this.addSlot(new Slot(this.newinventory, 2, 171, 46) {
+            @Override
+            public boolean canInsert(ItemStack stack) {
+                return false;
             }
-            for(int i = 0; i < 16; i++) {
-                this.addProperty(Property.create(this.selectedTier, i));
-            }
+        });
+        this.addPlayerSlots(playerInventory, 16, 89);
+        for(int i = 0; i < 16; i++) {
+            this.addProperty(Property.create(enchantment, i));
+        }
+        for(int i = 0; i < 16; i++) {
+            this.addProperty(Property.create(enchantmentTier, i));
+        }
+        for(int i = 0; i < 16; i++) {
+            this.addProperty(Property.create(selectedTier, i));
+        }
+        this.addProperty(usedEnchantable);
         this.addProperty(Property.create(this.enchantmentPower, 0));
         this.addProperty(Property.create(this.enchantmentPower, 1));
         this.addProperty(Property.create(this.enchantmentPower, 2));
@@ -134,7 +131,6 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
         this.addProperty(Property.create(this.enchantmentLevel, 0));
         this.addProperty(Property.create(this.enchantmentLevel, 1));
         this.addProperty(Property.create(this.enchantmentLevel, 2));
-    //        ci.cancel();
     }
 
 
@@ -145,7 +141,19 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
         CustomEnchantmentScreenHandler handler = this;
         if (inventory == this.newinventory) {
             ItemStack inputStack = inventory.getStack(0);
+            ItemStack fuelStack = inventory.getStack(1);
             ItemStack outputstack = inventory.getStack(2);
+
+            if(!fuelStack.isEmpty()){
+                this.context.run((world, pos) -> {
+                    BlockEntity entity = world.getBlockEntity(pos);
+                    if(entity instanceof EtableFuelLevelInterface fuelInterface){
+                        fuelInterface.enchantingDecisions$setFuelLevel(fuelInterface.enchantingDecisions$getFuelLevel() + 12*fuelStack.getCount());
+                        EnchantingDecisions.LOGGER.info("Fuel Level {}", fuelInterface.enchantingDecisions$getFuelLevel());
+                        inventory.removeStack(1);
+                    }
+                });
+            }
             //there are 4 possible states
             //1) both slots are empty -> enchanting table not in use, do nothing
             //2) input is full but output is empty -> new item is placed in the input slot, must generate new enchantments or output has been taken and the fuel is consumed and input is to be deleted
@@ -154,14 +162,14 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
             if(!inputStack.isEmpty() && !outputstack.isEmpty()){
                 if(inputStack.getName() != outputstack.getName()){
                     if((inputStack.isEnchantable()||inputStack.hasEnchantments()) && !inputStack.isOf(Items.BOOK)){
-                        checkNewItem(inventory, handler, inputStack);
+                        checkNewItem(inventory, inputStack);
                     }
                 }
             }
             if (!inputStack.isEmpty() && outputstack.isEmpty() &&
                     (inputStack.isEnchantable()||inputStack.hasEnchantments()) && !inputStack.isOf(Items.BOOK)) {
                 if(enchantment[0] == -1){//table has not been setup for use
-                    checkNewItem(inventory, handler, inputStack);
+                    checkNewItem(inventory, inputStack);
                 }
                 else{//handles the completion of the enchanting process
 
@@ -179,6 +187,12 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                         //                    }
 
                         //TODO: Add Lapis fuel consumption
+                        int fuelConsumed = 10;
+                        BlockEntity entity = world.getBlockEntity(pos);
+                        if(entity instanceof EtableFuelLevelInterface fuelInterface){
+                            fuelInterface.enchantingDecisions$setFuelLevel(fuelInterface.enchantingDecisions$getFuelLevel() - fuelConsumed);
+                            EnchantingDecisions.LOGGER.info("Fuel Level {}", fuelInterface.enchantingDecisions$getFuelLevel());
+                        }
                         inventory.removeStack(0);//delete input as the user has the output now
                         handler.sendContentUpdates();
                     });
@@ -200,11 +214,18 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
 
         }
     }
-
-    private void checkNewItem(Inventory inventory, CustomEnchantmentScreenHandler handler, ItemStack inputStack) {
+/*
+        Function: checkNewItem
+        Brief: used to read the type of item and enchantments of a new input selection, and find compatible and available enchantments
+        return: none
+        parameters:
+            Inventory, enchanting table inventory
+            ItemStack, input item slot to be scanned
+ */
+    private void checkNewItem(Inventory inventory, ItemStack inputStack) {
         this.context.run((world, pos) -> {
             ItemEnchantmentsComponent enchants = inputStack.getEnchantments();
-            handler.enchantmentPower[0] = 1;
+            this.enchantmentPower[0] = 1;
             Registry<Enchantment> EnchantRegistry =  world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
 
             Stream<Enchantment> availableEnchantments = Stream.empty();
@@ -215,10 +236,6 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
             List<Enchantment> availableList = new java.util.ArrayList<>(availableEnchantments.toList());
 
 
-
-//            Stream<ComponentType<?>> componentstream = inputStack.getComponents().getTypes().stream();
-//            Stream<ComponentType<?>> Enchantable = componentstream.filter(component -> Objects.equals(component.getCodec(), EnchantableComponent.CODEC));
-//            Enchantable.
             int latest = 0;
 
 
@@ -268,31 +285,46 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
             inventory.setStack(2, preposed);
 
 
-            handler.sendContentUpdates();
+            this.sendContentUpdates();
         });
     }
 
+
+    /*
+        Function: onButtonCLick
+        Brief: handled Enchantment screen button presses to increment or decrement enchantment values
+        return: bool, returns true if the button click is valid
+        parameters:
+            PlayerEntity, the player that clicked on the buttons
+            int, a bit compressed int to carry the button ID (bits 0-16) and if the enchantment at that ID should be decremented or incremented (bits 17, 18)
+    */
     @Override
     public boolean onButtonClick(PlayerEntity player, int id) {
-        //expected ID input: bits 0-16 - enchantment selected, bits 5-6 - 1 is left arrow, 2 is central button, 3 is right arrow
         int buttonID = id & 0xFFFF;
         int selection = (id>>16 & 0x3);
         if (enchantment[buttonID] != -1) {
 
-//            EnchantableComponent comp  = inputStack.getComponents().get(DataComponentTypes.ENCHANTABLE);
+            EnchantableComponent comp  = this.newinventory.getStack(0).getComponents().get(DataComponentTypes.ENCHANTABLE);
+            int enchantability = 0;
+            if(comp != null){
+                enchantability = comp.value();
+            }
 
-            //this.context.run((world, pos) -> {
+            this.context.run((world, pos) -> {
 
             Registry<Enchantment> EnchantRegistry = player.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
             RegistryEntry<Enchantment> toBeAdded = EnchantRegistry.getEntry(EnchantRegistry.get(enchantment[buttonID]));
 
-            if (EnchantmentHelper.isCompatible(newinventory.getStack(2).getEnchantments().getEnchantments(), toBeAdded)) {
 
 
                 if (selection == 2 || selection == 3) {
-                    selectedTier[buttonID]++;
-                    if (selectedTier[buttonID] > enchantmentTier[buttonID]) {
-                        selectedTier[buttonID] = enchantmentTier[buttonID];
+
+                    if (EnchantmentHelper.isCompatible(newinventory.getStack(2).getEnchantments().getEnchantments(), toBeAdded)
+                        || newinventory.getStack(2).getEnchantments().getLevel(toBeAdded) > 0) {
+                        selectedTier[buttonID]++;
+                        if (selectedTier[buttonID] > enchantmentTier[buttonID]) {
+                            selectedTier[buttonID] = enchantmentTier[buttonID];
+                        }
                     }
 
 
@@ -314,8 +346,7 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                 }
                 proposed.set(ModComponents.PLAYER_ENCHANTED, Boolean.TRUE);
                 newinventory.setStack(2, proposed);
-            }
-            //});
+            });
             return true;
         } else {
             return false;

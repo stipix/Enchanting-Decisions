@@ -1,6 +1,7 @@
 package stipix.enchanting_decisions;
 
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.registry.Registry;
 
+public record Enchantability(Enchantment enchantment, int[] levelValues) {
 
+}

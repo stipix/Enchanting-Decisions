@@ -3,7 +3,9 @@
   "package": "stipix.enchanting_decisions.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "EnchantingTableBlockEntityMixin",
     "EnchantingTableBlockMixin",
+    "LootTableMixin"
   ],
   "injectors": {
     "defaultRequire": 1
