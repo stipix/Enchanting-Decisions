@@ -3,6 +3,9 @@
   "package": "stipix.enchanting_decisions.mixin.client",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "hud.ExperienceBarMixin",
+    "hud.InGameHudMixin",
+    "hud.RemoveXPLevelIndicator"
   ],
   "injectors": {
     "defaultRequire": 1

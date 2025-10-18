@@ -5,7 +5,10 @@
   "mixins": [
     "EnchantingTableBlockEntityMixin",
     "EnchantingTableBlockMixin",
-    "LootTableMixin"
+    "GrindstoneBlockMixin",
+    "LootTableMixin",
+    "noXP.AnvilScreenHandlerMixin",
+    "noXP.ExperienceOrbEntityMixin"
   ],
   "injectors": {
     "defaultRequire": 1

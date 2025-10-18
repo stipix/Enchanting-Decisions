@@ -1,4 +1,4 @@
-package name.modid.mixin.noXP;
+package stipix.enchanting_decisions.mixin.noXP;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.component.DataComponentTypes;

@@ -1,6 +1,6 @@
-package name.modid.mixin;
+package stipix.enchanting_decisions.mixin;
 
-import name.modid.CustomGrindstoneScreenHandler;
+import stipix.enchanting_decisions.CustomGrindstoneScreenHandler;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.GrindstoneBlock;
 import net.minecraft.screen.NamedScreenHandlerFactory;
@@ -21,7 +21,7 @@ public class GrindstoneBlockMixin {
 
     @Shadow
     @Final
-    private static final Text TITLE = Text.translatable("enchantment-rework.grindstone_title");
+    private static final Text TITLE = Text.translatable("enchanting-decisions.grindstone_title");
 
     @Inject(method = "createScreenHandlerFactory", at = @At("HEAD"), cancellable = true)
     protected void createScreenHandlerFactory(BlockState state, World world, BlockPos pos, CallbackInfoReturnable<NamedScreenHandlerFactory> cir) {

@@ -1,4 +1,4 @@
-package name.modid.mixin.noXP;
+package stipix.enchanting_decisions.mixin.noXP;
 
 import net.minecraft.entity.ExperienceOrbEntity;
 import net.minecraft.server.world.ServerWorld;
