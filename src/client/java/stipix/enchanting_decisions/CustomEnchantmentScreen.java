@@ -138,15 +138,16 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
                             70, 16,
                             70, 16);
 
-                    for(int j = 0; j < enchantmentMaxTier; j++){
+                    for(int j = 0; j < Math.max(enchantmentMaxTier, selectedTier); j++){
                         Identifier curPip;
                         if(selectedTier > j){
-                            if(EnchantRegistry.getEntry(EnchantRegistry.get(enchantmentID)).isIn(EnchantmentTags.CURSE)){
+                            if(EnchantRegistry.getEntry(EnchantRegistry.get(enchantmentID)).isIn(EnchantmentTags.CURSE)
+                            ||  selectedTier > enchantmentMaxTier  && enchantmentMaxTier <= j){
                                 curPip = PIPTEXTURECURSED;
                             } else {
                                 curPip = PIPTEXTUREON;
                             }
-                        }else {
+                        }else{
                             curPip = PIPTEXTUREOFF;
                         }
 
