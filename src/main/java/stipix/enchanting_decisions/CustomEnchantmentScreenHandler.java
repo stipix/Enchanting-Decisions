@@ -191,7 +191,7 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                         //                    }
 
                         //TODO: Add Lapis fuel consumption
-                        int fuelConsumed = 10;
+                        int fuelConsumed = Math.max(usedEnchantable.get() - EnchantabilityCosts.getEnchantabilityUsed(inputStack),0);
                         BlockEntity entity = world.getBlockEntity(pos);
                         if(entity instanceof EtableFuelLevelInterface fuelInterface){
                             fuelInterface.enchantingDecisions$setFuelLevel(fuelInterface.enchantingDecisions$getFuelLevel() - fuelConsumed);

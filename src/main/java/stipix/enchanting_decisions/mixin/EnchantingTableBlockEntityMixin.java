@@ -17,7 +17,7 @@ import stipix.enchanting_decisions.EtableFuelLevelInterface;
 @Mixin(EnchantingTableBlockEntity.class)
 public abstract class EnchantingTableBlockEntityMixin extends BlockEntity implements EtableFuelLevelInterface {
     @Unique
-    private static int fuelLevel;
+    private int fuelLevel;
 
     public EnchantingTableBlockEntityMixin(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -36,7 +36,7 @@ public abstract class EnchantingTableBlockEntityMixin extends BlockEntity implem
         return fuelLevel;
     }
     public void enchantingDecisions$setFuelLevel(int fuelLevel){
-        EnchantingTableBlockEntityMixin.fuelLevel = fuelLevel;
+        this.fuelLevel = fuelLevel;
         markDirty();
     }
 

@@ -64,48 +64,48 @@ public class EnchantabilityCosts {
 
 
     public EnchantabilityCosts(){
-        assert register(PROTECTION);
-        assert register(FIRE_PROTECTION);
-        assert register(FEATHER_FALLING);
-        assert register(BLAST_PROTECTION);
-        assert register(PROJECTILE_PROTECTION);
-        assert register(RESPIRATION);
-        assert register(AQUA_AFFINITY);
-        assert register(THORNS);
-        assert register(DEPTH_STRIDER);
-        assert register(FROST_WALKER);
-        assert register(BINDING_CURSE);
-        assert register(SOUL_SPEED);
-        assert register(SWIFT_SNEAK);
-        assert register(SHARPNESS);
-        assert register(SMITE);
-        assert register(BANE_OF_ARTHROPODS);
-        assert register(KNOCKBACK);
-        assert register(FIRE_ASPECT);
-        assert register(LOOTING);
-        assert register(SWEEPING_EDGE);
-        assert register(EFFICIENCY);
-        assert register(SILK_TOUCH);
-        assert register(UNBREAKING);
-        assert register(FORTUNE);
-        assert register(POWER);
-        assert register(PUNCH);
-        assert register(FLAME);
-        assert register(INFINITY);
-        assert register(LUCK_OF_THE_SEA);
-        assert register(LURE);
-        assert register(LOYALTY);
-        assert register(IMPALING);
-        assert register(RIPTIDE);
-        assert register(CHANNELING);
-        assert register(MULTISHOT);
-        assert register(QUICK_CHARGE);
-        assert register(PIERCING);
-        assert register(DENSITY);
-        assert register(BREACH);
-        assert register(WIND_BURST);
-        assert register(MENDING);
-        assert register(VANISHING_CURSE);
+        register(PROTECTION);
+        register(FIRE_PROTECTION);
+        register(FEATHER_FALLING);
+        register(BLAST_PROTECTION);
+        register(PROJECTILE_PROTECTION);
+        register(RESPIRATION);
+        register(AQUA_AFFINITY);
+        register(THORNS);
+        register(DEPTH_STRIDER);
+        register(FROST_WALKER);
+        register(BINDING_CURSE);
+        register(SOUL_SPEED);
+        register(SWIFT_SNEAK);
+        register(SHARPNESS);
+        register(SMITE);
+        register(BANE_OF_ARTHROPODS);
+        register(KNOCKBACK);
+        register(FIRE_ASPECT);
+        register(LOOTING);
+        register(SWEEPING_EDGE);
+        register(EFFICIENCY);
+        register(SILK_TOUCH);
+        register(UNBREAKING);
+        register(FORTUNE);
+        register(POWER);
+        register(PUNCH);
+        register(FLAME);
+        register(INFINITY);
+        register(LUCK_OF_THE_SEA);
+        register(LURE);
+        register(LOYALTY);
+        register(IMPALING);
+        register(RIPTIDE);
+        register(CHANNELING);
+        register(MULTISHOT);
+        register(QUICK_CHARGE);
+        register(PIERCING);
+        register(DENSITY);
+        register(BREACH);
+        register(WIND_BURST);
+        register(MENDING);
+        register(VANISHING_CURSE);
 
 
     }
@@ -135,6 +135,7 @@ public class EnchantabilityCosts {
                     if( level <= cost.get().levelValues().length && level > 0){
                         used += cost.get().levelValues()[level - 1];
                     } else if (level >cost.get().levelValues().length ){
+                        //in cases of enchantment above the max enchantment
                         used += 15;
                     }
                 }else {

@@ -2,6 +2,13 @@
 package stipix.enchanting_decisions.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.ChiseledBookshelfBlockEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.registry.tag.BlockTags;
+import net.minecraft.util.collection.DefaultedList;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import stipix.enchanting_decisions.CustomEnchantmentScreenHandler;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.EnchantingTableBlock;
@@ -32,5 +39,22 @@ public abstract class EnchantingTableBlockMixin {
         }, text);
 
         cir.setReturnValue(retrunFactory);
+    }
+
+    @Redirect(method = "randomDisplayTick",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/block/EnchantingTableBlock;canAccessPowerProvider(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/BlockPos;)Z")
+    )
+    public boolean randomDisplayTickRedirect(World world, BlockPos tablePos, BlockPos providerOffset){
+        if(world.getBlockState(tablePos.add(providerOffset)).isOf(Blocks.CHISELED_BOOKSHELF)
+                && world.getBlockState(tablePos.add(providerOffset.getX() / 2, providerOffset.getY(), providerOffset.getZ() / 2))
+                .isIn(BlockTags.ENCHANTMENT_POWER_TRANSMITTER)){
+            //get the bookshelf inventory
+            BlockEntity inventory = world.getBlockEntity(tablePos.add(providerOffset));
+            if(inventory instanceof ChiseledBookshelfBlockEntity) {
+                DefaultedList<ItemStack> books = ((ChiseledBookshelfBlockEntity) inventory).getHeldStacks();
+                return !books.isEmpty();
+            }
+        }
+        return false;
     }
 }

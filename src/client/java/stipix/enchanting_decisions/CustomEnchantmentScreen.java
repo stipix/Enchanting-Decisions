@@ -125,7 +125,7 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
                     //adaptively change drawn texture if the user is hovering over it
                     Identifier curBox;
                     if(mouseY - y -4 >= boxHeight*i-scroll && mouseY - y -4 < boxHeight*(i+1)-scroll
-                            && mouseX - x >= 50 && mouseX - x < 120){
+                            && mouseX - x >= 50 && mouseX - x < 120 && mouseY -y > 4 && mouseY -y < 68){
                         curBox = NEWBUTTONTEXTUREHIGHLIGHTED;
                     } else {
                         curBox = NEWBUTTONTEXTURE;
@@ -205,25 +205,29 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
         public boolean mouseClicked(Click click, boolean doubled){
             int x = (super.width - super.backgroundWidth) / 2;
             int y = (super.height - super.backgroundHeight) / 2;
-            for (int i = 0; i < 16; i++){
+            if(click.x()-x > 50 && click.x()-x < 120 && click.y()-y > 4 && click.y()-y < 68) {
 
-                if(click.y() - y -4 >= boxHeight*i-scroll && click.y() - y -4 < boxHeight*(i+1)-scroll){
-                    int enchantID = handler.getEnchants()[i];
-                    if(click.x() - x > 50 && click.x() - x < 120 && enchantID != -1){
-                        assert this.client != null;
-                        int addsub = 0;
-                        if(click.button() == InputUtil.GLFW_MOUSE_BUTTON_LEFT){
-                            addsub = 2;
-                        }else if(click.button() == InputUtil.GLFW_MOUSE_BUTTON_RIGHT){
-                            assert super.client.world != null;
-                            Registry<Enchantment> EnchantRegistry =  super.client.world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
-                            if(!EnchantRegistry.getEntry(EnchantRegistry.get(enchantID)).isIn(EnchantmentTags.CURSE)){
-                                addsub = 1;
+
+                for (int i = 0; i < 16; i++) {
+
+                    if (click.y() - y - 4 >= boxHeight * i - scroll && click.y() - y - 4 < boxHeight * (i + 1) - scroll) {
+                        int enchantID = handler.getEnchants()[i];
+                        if (click.x() - x > 50 && click.x() - x < 120 && enchantID != -1) {
+                            assert this.client != null;
+                            int addsub = 0;
+                            if (click.button() == InputUtil.GLFW_MOUSE_BUTTON_LEFT) {
+                                addsub = 2;
+                            } else if (click.button() == InputUtil.GLFW_MOUSE_BUTTON_RIGHT) {
+                                assert super.client.world != null;
+                                Registry<Enchantment> EnchantRegistry = super.client.world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
+                                if (!EnchantRegistry.getEntry(EnchantRegistry.get(enchantID)).isIn(EnchantmentTags.CURSE)) {
+                                    addsub = 1;
+                                }
                             }
-                        }
-                        if(this.handler.onButtonClick(this.client.player, (addsub<<16)|i)){
-                            if (this.client.interactionManager != null) {
-                                this.client.interactionManager.clickButton(this.handler.syncId, (addsub<<16)|i);
+                            if (this.handler.onButtonClick(this.client.player, (addsub << 16) | i)) {
+                                if (this.client.interactionManager != null) {
+                                    this.client.interactionManager.clickButton(this.handler.syncId, (addsub << 16) | i);
+                                }
                             }
                         }
                     }
