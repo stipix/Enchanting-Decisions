@@ -270,10 +270,25 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                     }
                 }
             }
-            for(int i = 0; i < enchantment.length; i++) {
-                int level = enchants.getLevel(EnchantRegistry.getEntry(EnchantRegistry.get(enchantment[i])));
-                selectedTier[i] = level;
+            for (RegistryEntry<Enchantment> enchantmentRegistryEntry : inputStack.getEnchantments().getEnchantments()){
+                int level = enchants.getLevel(EnchantRegistry.getEntry(enchantmentRegistryEntry.value()));
+                boolean intableflag = false;
+                for( int i = 0; i < enchantment.length; i++){
+                    if(EnchantRegistry.get(enchantment[i]) == enchantmentRegistryEntry.value()){
+                        selectedTier[i] = level;
+                        intableflag = true;
+                    }
+                }
+                if(!intableflag){
+                    enchantment[latest] = EnchantRegistry.getRawId(enchantmentRegistryEntry.value());
+                    selectedTier[latest] = level;
+                    latest++;
+                }
             }
+//            for(int i = 0; i < enchantment.length; i++) {
+//                int level = enchants.getLevel(EnchantRegistry.getEntry(EnchantRegistry.get(enchantment[i])));
+//                selectedTier[i] = level;
+//            }
 
             //create the proposed item
             ItemStack preposed = inputStack.copy();
@@ -310,7 +325,7 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                 enchantability = comp.value();
             }
 
-            //this.context.run((world, pos) -> {
+
 
             Registry<Enchantment> EnchantRegistry = player.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
             RegistryEntry<Enchantment> toBeAdded = EnchantRegistry.getEntry(EnchantRegistry.get(enchantment[buttonID]));
@@ -323,7 +338,7 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                         || newinventory.getStack(2).getEnchantments().getLevel(toBeAdded) > 0) {
                         selectedTier[buttonID]++;
                         if (selectedTier[buttonID] > enchantmentTier[buttonID]) {
-                            selectedTier[buttonID] = enchantmentTier[buttonID];
+                            selectedTier[buttonID]--;
                         }
                     }
 
@@ -346,7 +361,7 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                 }
                 proposed.set(ModComponents.PLAYER_ENCHANTED, Boolean.TRUE);
                 newinventory.setStack(2, proposed);
-            //});
+
             return true;
         } else {
             return false;

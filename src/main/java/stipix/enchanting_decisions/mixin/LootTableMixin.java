@@ -41,8 +41,8 @@ public class LootTableMixin {
         ItemStack itemStack2 = itemStack.copy();
         if(itemStack.isOf(Items.ENCHANTED_BOOK)){
 
-        EnchantmentHelper.apply(
-                itemStack2, components -> components.remove(enchantment -> !enchantment.isIn(EnchantmentTags.CURSE)));
+            EnchantmentHelper.apply(
+                    itemStack2, components -> components.remove(enchantment -> !enchantment.isIn(EnchantmentTags.CURSE)));
 
             Object enchant = itemStack.getOrDefault(DataComponentTypes.STORED_ENCHANTMENTS, 0);
             if(enchant instanceof ItemEnchantmentsComponent) {
