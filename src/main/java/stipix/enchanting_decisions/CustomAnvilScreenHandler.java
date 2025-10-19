@@ -128,13 +128,11 @@ public class CustomAnvilScreenHandler extends ForgingScreenHandler {
                 if (itemStack2.isDamageable() && itemStack.canRepairWith(itemStack3)) {
 
                     float mendingBonus=0;
-                    float repairPenalty=0;
                     for(RegistryEntry<Enchantment> e : itemStack2.getEnchantments().getEnchantments()){
                         if(e.matchesKey(Enchantments.MENDING)){
                             mendingBonus = 0.09f*itemStack2.getEnchantments().getLevel(e);
-                        } else {
-                            //INTEGRATE ENCHANTABILITY WHEN SHE PUSHES IT
                         }
+                            //INTEGRATE ENCHANTABILITY WHEN SHE PUSHES IT
                     }
                     //k is the lesser durability between 1/4 dur and current amount
                     int k = Math.min(itemStack2.getDamage(), (int)(itemStack2.getMaxDamage()*(mendingBonus+0.3f)));
