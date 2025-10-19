@@ -2,8 +2,15 @@ package stipix.enchanting_decisions;
 
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.Enchantments;
+import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.entry.RegistryEntry;
+import org.jetbrains.annotations.NotNull;
+import org.spongepowered.include.com.google.common.collect.Sets;
 
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
 
@@ -23,7 +30,7 @@ public class EnchantabilityCosts {
     public static final EnchantabilityCost SWIFT_SNEAK = new EnchantabilityCost(Enchantments.SWIFT_SNEAK, new int[]{2, 4, 6});
     public static final EnchantabilityCost SHARPNESS = new EnchantabilityCost(Enchantments.SHARPNESS, new int[]{2, 4, 6, 8, 10});
     public static final EnchantabilityCost SMITE = new EnchantabilityCost(Enchantments.SMITE, new int[]{2, 3, 5, 7, 8});
-    public static final EnchantabilityCost BANE_OF_ARTHROPODS = new EnchantabilityCost(Enchantments.BANE_OF_ARTHROPODS, new int[]{2, 5, 8});;
+    public static final EnchantabilityCost BANE_OF_ARTHROPODS = new EnchantabilityCost(Enchantments.BANE_OF_ARTHROPODS, new int[]{2, 5, 8});
     public static final EnchantabilityCost KNOCKBACK = new EnchantabilityCost(Enchantments.KNOCKBACK, new int[]{4, 8});
     public static final EnchantabilityCost FIRE_ASPECT = new EnchantabilityCost(Enchantments.FIRE_ASPECT, new int[]{4, 8});
     public static final EnchantabilityCost LOOTING = new EnchantabilityCost(Enchantments.LOOTING, new int[]{3, 6, 10});
@@ -53,8 +60,10 @@ public class EnchantabilityCosts {
 
 
 
-    private static Set<EnchantabilityCost> enchantabilitiyCosts;
-    public void Enchantabilities(){
+    private static final Set<EnchantabilityCost> enchantabilityCosts = Sets.newHashSet();
+
+
+    public EnchantabilityCosts(){
         assert register(PROTECTION);
         assert register(FIRE_PROTECTION);
         assert register(FEATHER_FALLING);
@@ -101,16 +110,39 @@ public class EnchantabilityCosts {
 
     }
     public boolean register(EnchantabilityCost newEnchantability){
-        return enchantabilitiyCosts.add(newEnchantability);
+        return enchantabilityCosts.add(newEnchantability);
     }
 
-    public Optional<EnchantabilityCost> getEnchantabilityCost(RegistryKey<Enchantment> enchantment){
+    static public Optional<EnchantabilityCost> getEnchantabilityCost(RegistryKey<Enchantment> enchantment){
         Optional<EnchantabilityCost> optional = Optional.empty();
-        for(EnchantabilityCost enchantabilityCost : enchantabilitiyCosts){
+        for(EnchantabilityCost enchantabilityCost : enchantabilityCosts){
             if(enchantabilityCost.enchantment().equals(enchantment)){
                 optional = Optional.of(enchantabilityCost);
             }
         }
         return optional;
+    }
+
+    static public int getEnchantabilityUsed(ItemStack itemStack){
+        int used = 0;
+        for(RegistryEntry<Enchantment> enchantment : itemStack.getEnchantments().getEnchantments()){
+            int level = itemStack.getEnchantments().getLevel(enchantment);
+
+            Optional<RegistryKey<Enchantment>> keyOptional = enchantment.getKey();
+            if(keyOptional.isPresent()){
+                Optional<EnchantabilityCost> cost = EnchantabilityCosts.getEnchantabilityCost(keyOptional.get());
+                if(cost.isPresent()){
+                    if( level <= cost.get().levelValues().length && level > 0){
+                        used += cost.get().levelValues()[level - 1];
+                    } else if (level >cost.get().levelValues().length ){
+                        used += 15;
+                    }
+                }else {
+                    //so that non-registered mods have a defined enchantability
+                    used += level * 2;
+                }
+            }
+        }
+        return used;
     }
 }

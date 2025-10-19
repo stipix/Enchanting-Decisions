@@ -223,7 +223,7 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
                         }
                         if(this.handler.onButtonClick(this.client.player, (addsub<<16)|i)){
                             if (this.client.interactionManager != null) {
-                                this.client.interactionManager.clickButton(this.handler.syncId, i);
+                                this.client.interactionManager.clickButton(this.handler.syncId, (addsub<<16)|i);
                             }
                         }
                     }

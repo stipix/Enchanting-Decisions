@@ -39,6 +39,7 @@ public class EnchantingDecisions implements ModInitializer {
 		// Proceed with mild caution.
         ModComponents.onInitialize();
         ModScreenHandlers.registerScreenHandlers();
+        EnchantabilityCosts costs = new EnchantabilityCosts();
 		LOGGER.info("Enchanting decisions initialized!");
 	}
 }

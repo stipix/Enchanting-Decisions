@@ -4,6 +4,7 @@ package stipix.enchanting_decisions;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import net.fabricmc.fabric.api.item.v1.EnchantingContext;
@@ -25,6 +26,7 @@ import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.BlockTags;
@@ -32,6 +34,8 @@ import net.minecraft.registry.tag.EnchantmentTags;
 import net.minecraft.screen.*;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.collection.DefaultedList;
@@ -194,6 +198,7 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                             EnchantingDecisions.LOGGER.info("Fuel Level {}", fuelInterface.enchantingDecisions$getFuelLevel());
                         }
                         inventory.removeStack(0);//delete input as the user has the output now
+                        world.playSound(null, pos, SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, SoundCategory.BLOCKS, 1.0F, world.random.nextFloat() * 0.1F + 0.9F);
                         handler.sendContentUpdates();
                     });
                 }
@@ -285,10 +290,6 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                     latest++;
                 }
             }
-//            for(int i = 0; i < enchantment.length; i++) {
-//                int level = enchants.getLevel(EnchantRegistry.getEntry(EnchantRegistry.get(enchantment[i])));
-//                selectedTier[i] = level;
-//            }
 
             //create the proposed item
             ItemStack preposed = inputStack.copy();
@@ -316,53 +317,71 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
     @Override
     public boolean onButtonClick(PlayerEntity player, int id) {
         int buttonID = id & 0xFFFF;
-        int selection = (id>>16 & 0x3);
-        if (enchantment[buttonID] != -1) {
+        int selection = id>>16 & 0x3;
+            if (enchantment[id & 0xFFFF] != -1) {
 
-            EnchantableComponent comp  = this.newinventory.getStack(0).getComponents().get(DataComponentTypes.ENCHANTABLE);
-            int enchantability = 0;
-            if(comp != null){
-                enchantability = comp.value();
-            }
+                this.context.run((world, pos) -> {
+
+                    Registry<Enchantment> EnchantRegistry = player.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
+                    RegistryEntry<Enchantment> toBeAdded = EnchantRegistry.getEntry(EnchantRegistry.get(enchantment[buttonID]));
+
+                    EnchantableComponent comp  = this.newinventory.getStack(0).getComponents().get(DataComponentTypes.ENCHANTABLE);
+                    int enchantability;
+                    if(comp != null){
+                        enchantability = comp.value();
+                    } else {
+                        enchantability = 0;
+                    }
+                    int prevTier;
+                    prevTier = selectedTier[buttonID];
+
+                    if (selection == 2 || selection == 3) {
+
+                        if (EnchantmentHelper.isCompatible(newinventory.getStack(2).getEnchantments().getEnchantments(), toBeAdded)
+                            || newinventory.getStack(2).getEnchantments().getLevel(toBeAdded) > 0) {
+                            selectedTier[buttonID]++;
+                            if (selectedTier[buttonID] > enchantmentTier[buttonID]) {
+                                selectedTier[buttonID] = prevTier;
+                            }
+                        }
 
 
+                    } else if (selection == 1) {
+                        selectedTier[buttonID]--;
+                        if (selectedTier[buttonID] < 0) {
+                            selectedTier[buttonID] = prevTier;
+                        }
 
-            Registry<Enchantment> EnchantRegistry = player.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
-            RegistryEntry<Enchantment> toBeAdded = EnchantRegistry.getEntry(EnchantRegistry.get(enchantment[buttonID]));
+                    }
 
-
-
-                if (selection == 2 || selection == 3) {
-
-                    if (EnchantmentHelper.isCompatible(newinventory.getStack(2).getEnchantments().getEnchantments(), toBeAdded)
-                        || newinventory.getStack(2).getEnchantments().getLevel(toBeAdded) > 0) {
-                        selectedTier[buttonID]++;
-                        if (selectedTier[buttonID] > enchantmentTier[buttonID]) {
-                            selectedTier[buttonID]--;
+                    ItemStack proposed = newinventory.getStack(0).copy();
+                    EnchantmentHelper.apply(
+                            proposed, components -> components.remove(enchantment -> !enchantment.isIn(EnchantmentTags.CURSE)));
+                    for (int i = 0; i < enchantment.length; i++) {
+                        if (selectedTier[i] > 0) {
+                            proposed.addEnchantment(EnchantRegistry.getEntry(EnchantRegistry.get(enchantment[i])), selectedTier[i]);
                         }
                     }
+                    int enchantabilityUsed = 0;
+                    enchantabilityUsed =  EnchantabilityCosts.getEnchantabilityUsed(proposed);
+                    proposed.set(ModComponents.PLAYER_ENCHANTED, Boolean.TRUE);
 
+                    if(enchantability >= enchantabilityUsed && selectedTier[buttonID] != prevTier) {
+                        newinventory.setStack(2, proposed);
+                        usedEnchantable.set(enchantabilityUsed);
+                        //click works
+                        world.playSound(null, pos, SoundEvents.UI_BUTTON_CLICK.value(), SoundCategory.UI, 1.0F,  0.9F);
 
-                } else if (selection == 1) {
-                    selectedTier[buttonID]--;
-                    if (selectedTier[buttonID] < 0) {
-                        selectedTier[buttonID] = 0;
+                    } else {
+                        //click doesnt work
+                        selectedTier[buttonID] = prevTier;
+                        world.playSound(null, pos, SoundEvents.UI_BUTTON_CLICK.value(), SoundCategory.UI, 1.0F,  1.2F);
                     }
 
-                }
-                ItemStack proposed = newinventory.getStack(0).copy();
-                EnchantmentHelper.apply(
-                        proposed, components -> components.remove(enchantment -> !enchantment.isIn(EnchantmentTags.CURSE)));
 
-                for (int i = 0; i < enchantment.length; i++) {
-                    if (selectedTier[i] > 0) {
-                        proposed.addEnchantment(EnchantRegistry.getEntry(EnchantRegistry.get(enchantment[i])), selectedTier[i]);
-                    }
-                }
-                proposed.set(ModComponents.PLAYER_ENCHANTED, Boolean.TRUE);
-                newinventory.setStack(2, proposed);
-
+            });
             return true;
+
         } else {
             return false;
         }
