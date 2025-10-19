@@ -310,7 +310,7 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                 enchantability = comp.value();
             }
 
-            this.context.run((world, pos) -> {
+            //this.context.run((world, pos) -> {
 
             Registry<Enchantment> EnchantRegistry = player.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
             RegistryEntry<Enchantment> toBeAdded = EnchantRegistry.getEntry(EnchantRegistry.get(enchantment[buttonID]));
@@ -346,7 +346,7 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                 }
                 proposed.set(ModComponents.PLAYER_ENCHANTED, Boolean.TRUE);
                 newinventory.setStack(2, proposed);
-            });
+            //});
             return true;
         } else {
             return false;
