@@ -9,8 +9,7 @@
     "GrindstoneBlockMixin",
     "LootTableMixin",
     "ToolMaterialMixin",
-    "noXP.AnvilScreenHandlerMixin",
-    "noXP.ExperienceOrbEntityMixin"
+    "ExperienceOrbEntityMixin"
   ],
   "injectors": {
     "defaultRequire": 1
