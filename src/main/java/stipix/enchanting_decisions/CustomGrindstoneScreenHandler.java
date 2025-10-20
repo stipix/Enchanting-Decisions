@@ -2,11 +2,9 @@ package stipix.enchanting_decisions;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.block.Blocks;
-import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.ExperienceOrbEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.CraftingResultInventory;
@@ -18,10 +16,8 @@ import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.EnchantmentTags;
 import net.minecraft.screen.*;
 import net.minecraft.screen.slot.Slot;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldEvents;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 
 public class CustomGrindstoneScreenHandler extends ScreenHandler {
     public static final int field_30793 = 35;
@@ -41,6 +37,8 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
         }
     };
     private final ScreenHandlerContext context;
+    private ItemStack originator;
+    private boolean modifyInput = false;
 
     public CustomGrindstoneScreenHandler(int syncId, PlayerInventory playerInventory) {
         this(syncId, playerInventory, ScreenHandlerContext.EMPTY);
@@ -52,13 +50,13 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
         this.addSlot(new Slot(this.input, 0, 49, 19) {
             @Override
             public boolean canInsert(ItemStack stack) {
-                return stack.isDamageable() || EnchantmentHelper.hasEnchantments(stack) || stack.isOf(Items.BOOK);
+                return EnchantmentHelper.hasEnchantments(stack) || stack.isOf(Items.BOOK);
             }
         });
         this.addSlot(new Slot(this.input, 1, 49, 40) {
             @Override
             public boolean canInsert(ItemStack stack) {
-                return stack.isDamageable() || EnchantmentHelper.hasEnchantments(stack) || stack.isOf(Items.BOOK);
+                return EnchantmentHelper.hasEnchantments(stack) || stack.isOf(Items.BOOK);
             }
         });
         this.addSlot(new Slot(this.result, 2, 129, 34) {
@@ -70,51 +68,29 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
             @Override
             public void onTakeItem(PlayerEntity player, ItemStack stack) {
                 context.run((world, pos) -> {
-                    if (world instanceof ServerWorld) {
-                        ExperienceOrbEntity.spawn((ServerWorld)world, Vec3d.ofCenter(pos), this.getExperience(world));
-                    }
-
-                    world.syncWorldEvent(WorldEvents.GRINDSTONE_USED, pos, 0);
+                    //world.syncWorldEvent(WorldEvents.LECTERN_BOOK_PAGE_TURNED, pos, 0);  //AUDIO (grindstone_used)
+                    //world.playSoundClient(SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, SoundCategory.BLOCKS, 0.8f, MathHelper.clamp((float)Math.random(),0.7f,1.2f));
+                    world.playSound(null, pos, SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, SoundCategory.BLOCKS, 1.0f, world.random.nextFloat() * 0.1F + 0.9F);
                 });
-                if(CustomGrindstoneScreenHandler.this.input.getStack(0).getItem().asItem() == Items.BOOK){
-                    input.getStack(0).decrement(1);
-                } else {
-                    CustomGrindstoneScreenHandler.this.input.setStack(0, ItemStack.EMPTY);
-                }
-
-                if(CustomGrindstoneScreenHandler.this.input.getStack(1).getItem().asItem() == Items.BOOK){
-                    input.getStack(1).decrement(1);
-                } else {
-                    CustomGrindstoneScreenHandler.this.input.setStack(1, ItemStack.EMPTY);
-                }
-            }
-
-            private int getExperience(World world) {
-                int i = 0;
-                i += this.getExperience(CustomGrindstoneScreenHandler.this.input.getStack(0));
-                i += this.getExperience(CustomGrindstoneScreenHandler.this.input.getStack(1));
-                if (i > 0) {
-                    int j = (int)Math.ceil(i / 2.0);
-                    return j + world.random.nextInt(j);
-                } else {
-                    return 0;
-                }
-            }
-
-            private int getExperience(ItemStack stack) {
-                int i = 0;
-                ItemEnchantmentsComponent itemEnchantmentsComponent = EnchantmentHelper.getEnchantments(stack);
-
-                for (Object2IntMap.Entry<RegistryEntry<Enchantment>> entry : itemEnchantmentsComponent.getEnchantmentEntries()) {
-                    RegistryEntry<Enchantment> registryEntry = (RegistryEntry<Enchantment>)entry.getKey();
-                    int j = entry.getIntValue();
-                    if (!registryEntry.isIn(EnchantmentTags.CURSE)) {
-                        i += registryEntry.value().getMinPower(j);
+                for (int i=0; i<2; i++){
+                    if(input.getStack(i).isOf(Items.BOOK)) {
+                        input.getStack(i).decrement(1);
+                        if (input.getStack(1 - i).isOf(Items.ENCHANTED_BOOK)) {
+                            //TODO - remove first enchantment from book
+                            //CustomGrindstoneScreenHandler.this.input.setStack(0, ItemStack.EMPTY);
+                            if(modifyInput) {
+                                input.setStack(1 - i, originator);
+                                onContentChanged(inventory);
+                            }
+                        }
                     }
+
                 }
 
-                return i;
-            }
+
+            } //end of onTakeItem()
+
+
         });
         this.addPlayerSlots(playerInventory, 8, 84);
     }
@@ -139,13 +115,17 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
         boolean bl = !firstInput.isEmpty() || !secondInput.isEmpty();
         if (!bl) {
             return ItemStack.EMPTY;
+        } else if (firstInput.isOf(Items.ENCHANTED_BOOK) && secondInput.isOf(Items.BOOK)) {
+                return this.transferEnchantment(firstInput, secondInput);
+        } else if (secondInput.isOf(Items.ENCHANTED_BOOK) && firstInput.isOf(Items.BOOK)) {
+            return this.transferEnchantment(secondInput, firstInput);
         } else if (firstInput.getCount() <= 1 && secondInput.getCount() <= 1) {
             boolean bl2 = !firstInput.isEmpty() && !secondInput.isEmpty();
             if (!bl2) {
                 ItemStack itemStack = !firstInput.isEmpty() ? firstInput : secondInput;
                 return !EnchantmentHelper.hasEnchantments(itemStack) ? ItemStack.EMPTY : this.grind(itemStack.copy());
             } else {
-                return this.combineItems(firstInput, secondInput);
+                return ItemStack.EMPTY;
             }
         } else {
             return ItemStack.EMPTY;
@@ -171,63 +151,53 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
         }
     }
 
-    private ItemStack combineItems(ItemStack firstInput, ItemStack secondInput) {
-        if (!firstInput.isOf(secondInput.getItem())) {
-            return ItemStack.EMPTY;
-        } else {
-            int i = Math.max(firstInput.getMaxDamage(), secondInput.getMaxDamage());
-            int j = firstInput.getMaxDamage() - firstInput.getDamage();
-            int k = secondInput.getMaxDamage() - secondInput.getDamage();
-            int l = j + k + i * 5 / 100;
-            int m = 1;
-            if (!firstInput.isDamageable()) {
-                if (firstInput.getMaxCount() < 2 || !ItemStack.areEqual(firstInput, secondInput)) {
-                    return ItemStack.EMPTY;
-                }
-                m = 2;
-            }
-            ItemStack itemStack = firstInput.copyWithCount(m);
-            if (itemStack.isDamageable()) {
-                itemStack.set(DataComponentTypes.MAX_DAMAGE, i);
-                itemStack.setDamage(Math.max(i - l, 0));
-            }
+    private ItemStack transferEnchantment(ItemStack firstInput, ItemStack secondInput) {
+        //TODO - UNSHIT THIS FUCK
+        ItemStack resultant = Items.ENCHANTED_BOOK.getDefaultStack();
+        //ItemStack originator = Items.ENCHANTED_BOOK.getDefaultStack();
+        originator = Items.ENCHANTED_BOOK.getDefaultStack();
+        modifyInput = true;
 
-            this.transferEnchantments(itemStack, secondInput);
-            itemStack.set(ModComponents.PLAYER_ENCHANTED, Boolean.TRUE);
-            return this.grind(itemStack);
-        }
-    }
-
-    private void transferEnchantments(ItemStack target, ItemStack source) {
-        EnchantmentHelper.apply(target, components -> {
-            ItemEnchantmentsComponent itemEnchantmentsComponent = EnchantmentHelper.getEnchantments(source);
+        EnchantmentHelper.apply(resultant, components -> {
+            ItemEnchantmentsComponent itemEnchantmentsComponent = EnchantmentHelper.getEnchantments(firstInput);
 
             for (Object2IntMap.Entry<RegistryEntry<Enchantment>> entry : itemEnchantmentsComponent.getEnchantmentEntries()) {
                 RegistryEntry<Enchantment> registryEntry = (RegistryEntry<Enchantment>)entry.getKey();
                 if (components.getLevel(registryEntry) == 0) {
                     components.add(registryEntry, entry.getIntValue());
+                    return;
+                    //components.remove();
                 }
             }
         });
+
+        EnchantmentHelper.apply(originator, components -> {
+            ItemEnchantmentsComponent itemEnchantmentsComponent = EnchantmentHelper.getEnchantments(firstInput);
+            int i = 0;
+            for (Object2IntMap.Entry<RegistryEntry<Enchantment>> entry : itemEnchantmentsComponent.getEnchantmentEntries()) {
+                RegistryEntry<Enchantment> registryEntry = (RegistryEntry<Enchantment>)entry.getKey();
+                if (components.getLevel(registryEntry) == 0) {
+                    if(i>0) {
+                        components.add(registryEntry, entry.getIntValue());
+                    }
+                    //components.remove();
+                    i++;
+                }
+            }
+        });
+        return resultant;
+
     }
 
 
 
     private ItemStack grind(ItemStack item) {
         ItemEnchantmentsComponent itemEnchantmentsComponent = EnchantmentHelper.apply(
-                item, components -> components.remove(enchantment -> !enchantment.isIn(EnchantmentTags.CURSE))
+                item, components -> components.remove(enchantment -> !enchantment.isIn(EnchantmentTags.CURSE) || enchantment.isIn(EnchantmentTags.CURSE))
         );
         if (item.isOf(Items.ENCHANTED_BOOK) && itemEnchantmentsComponent.isEmpty()) {
             item = item.withItem(Items.BOOK);
         }
-
-        int i = 0;
-
-        for (int j = 0; j < itemEnchantmentsComponent.getSize(); j++) {
-            i = AnvilScreenHandler.getNextCost(i);
-        }
-
-        item.set(DataComponentTypes.REPAIR_COST, i);
         return item;
     }
 
