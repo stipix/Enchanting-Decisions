@@ -7,7 +7,6 @@ import net.minecraft.block.BlockState;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
@@ -24,8 +23,7 @@ import net.minecraft.util.StringHelper;
 import net.minecraft.world.WorldEvents;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Set;
-import java.util.stream.Stream;
+import java.util.Objects;
 
 public class CustomAnvilScreenHandler extends ForgingScreenHandler {
 
@@ -38,8 +36,6 @@ public class CustomAnvilScreenHandler extends ForgingScreenHandler {
 
 
     public CustomAnvilScreenHandler(int syncId, PlayerInventory playerInventory, ScreenHandlerContext context) {
-
-        //TODO: kill myself
         super(ModScreenHandlers.CUSTOM_ANVIL_SCREEN_HANDLER, syncId, playerInventory, context, getForgingSlotsManager());
     }
 
@@ -54,7 +50,7 @@ public class CustomAnvilScreenHandler extends ForgingScreenHandler {
         return string.length() <= 50 ? string : null;
     }
 
-
+    //TODO - Have renaming work again (gotta prioritize enabling output for single items)
     public boolean setNewItemName(String newItemName) {
         String string = sanitize(newItemName);
         if (string != null && !string.equals(this.newItemName)) {
@@ -79,7 +75,6 @@ public class CustomAnvilScreenHandler extends ForgingScreenHandler {
     protected void onTakeOutput(PlayerEntity player, ItemStack stack) {
    
         this.input.getStack(1).setCount(materialLeftover);
-
 
         if (player instanceof ServerPlayerEntity serverPlayerEntity
                 && !StringHelper.isBlank(this.newItemName)
@@ -112,7 +107,7 @@ public class CustomAnvilScreenHandler extends ForgingScreenHandler {
 
     @Override
     public void updateResult() {
-        this.output.setStack(0, ItemStack.EMPTY);
+        //this.output.setStack(0, ItemStack.EMPTY);
         ItemStack originalInput = this.input.getStack(0);
         int i = 0;
         if (!originalInput.isEmpty() &&
@@ -135,7 +130,7 @@ public class CustomAnvilScreenHandler extends ForgingScreenHandler {
                     }
                     float repairTax;
                     if(targetCopy.get(DataComponentTypes.ENCHANTABLE)!= null) {
-                        repairTax = 0.15f*((float)EnchantabilityCosts.getEnchantabilityUsed(targetCopy) / (float)targetCopy.get(DataComponentTypes.ENCHANTABLE).value());
+                        repairTax = 0.15f*((float)EnchantabilityCosts.getEnchantabilityUsed(targetCopy) / (float) Objects.requireNonNull(targetCopy.get(DataComponentTypes.ENCHANTABLE)).value());
                     }else{
                         repairTax = 0.0f;
                     }
@@ -147,19 +142,19 @@ public class CustomAnvilScreenHandler extends ForgingScreenHandler {
                         return;
                     }
 
+                    //counts out how much you can repair, based off how many materials you have
                     for (int m = 0; k > 0 &&
                             m < repairItem.getCount(); m++) {
                         this.materialLeftover -= 1;
-
                         int n = targetCopy.getDamage() - k;
                         targetCopy.setDamage(n);
                         i++;
-                        //change this too
                         k = Math.min(targetCopy.getDamage(), (int)(targetCopy.getMaxDamage()*(mendingBonus+0.3f-repairTax)));
                     }
 
                 }
-            }
+
+            }//end of repair section
 
             if (this.newItemName != null && !StringHelper.isBlank(this.newItemName)) {
                 if (!this.newItemName.equals(originalInput.getName().getString())) {
@@ -173,30 +168,36 @@ public class CustomAnvilScreenHandler extends ForgingScreenHandler {
                 targetCopy = ItemStack.EMPTY;
             }
 
-
+            //Handles book combination
             this.output.setStack(0, targetCopy);
             this.sendContentUpdates();
-        } else if (this.input.getStack(0).getItem().asItem() == Items.ENCHANTED_BOOK &&
-                this.input.getStack(0).getItem().asItem() == Items.ENCHANTED_BOOK) {
-            ItemStack newBook = Items.ENCHANTED_BOOK.getDefaultStack();
-            Set<RegistryEntry<Enchantment>> enchList = this.input.getStack(0).getEnchantments().getEnchantments();
-            for (RegistryEntry<Enchantment> ench: this.input.getStack(1).getEnchantments().getEnchantments()){
+        } else if (this.input.getStack(0).isOf(Items.ENCHANTED_BOOK) && this.input.getStack(1).isOf(Items.ENCHANTED_BOOK)) {
+            ItemStack out = Items.ENCHANTED_BOOK.getDefaultStack();
+            ItemEnchantmentsComponent input_1 = Objects.requireNonNull(this.input.getStack(0).get(DataComponentTypes.STORED_ENCHANTMENTS));
+            ItemEnchantmentsComponent input_2 = Objects.requireNonNull(this.input.getStack(1).get(DataComponentTypes.STORED_ENCHANTMENTS));
 
-                if(enchList.contains(ench)){
-                    enchList.add(ench);
-                    //this.input.getStack(1).getEnchantments().getLevel(ench)
-                } else {
-                    enchList.add(ench);
+            //Making sure both books have only 1 enchantment, and it's the same kind
+            if ((input_1.getEnchantments().size() == 1) && (input_2.getEnchantments().size() == 1)){
+                for (RegistryEntry<Enchantment> entry : input_1.getEnchantments()){
+                    if(input_2.getEnchantments().contains(entry)){
+                        //Making sure enchantments can't exceed their max level
+                        if(input_1.getLevel(entry) < entry.value().getMaxLevel() && input_2.getLevel(entry) < entry.value().getMaxLevel()){
+                            out.addEnchantment(entry, Math.min((input_1.getLevel(entry) + (input_2.getLevel(entry))), entry.value().getMaxLevel()));
+                            this.output.setStack(0, out);
+                            break;
+                        }
+                    }
+                    this.output.setStack(0, ItemStack.EMPTY);
+                    break;
                 }
-                //newBook.addEnchantment(enchList.contains(ench));
-
             }
-            //newBook.addEnchantment();
-            this.output.setStack(0, newBook);
-
 
         } else {
             this.output.setStack(0, ItemStack.EMPTY);
         }
+
     }
+
+
+
 }

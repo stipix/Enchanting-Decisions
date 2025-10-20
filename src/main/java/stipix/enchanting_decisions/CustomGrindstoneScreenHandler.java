@@ -2,6 +2,7 @@ package stipix.enchanting_decisions;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.block.Blocks;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -19,15 +20,9 @@ import net.minecraft.screen.slot.Slot;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 
+import java.util.Objects;
+
 public class CustomGrindstoneScreenHandler extends ScreenHandler {
-    public static final int field_30793 = 35;
-    public static final int INPUT_1_ID = 0;
-    public static final int INPUT_2_ID = 1;
-    public static final int OUTPUT_ID = 2;
-    private static final int INVENTORY_START = 3;
-    private static final int INVENTORY_END = 30;
-    private static final int HOTBAR_START = 30;
-    private static final int HOTBAR_END = 39;
     private final Inventory result = new CraftingResultInventory();
     final Inventory input = new SimpleInventory(2) {
         @Override
@@ -82,6 +77,12 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
                                 input.setStack(1 - i, originator);
                                 onContentChanged(inventory);
                             }
+                        } else if (input.getStack(1 - i).hasEnchantments()) {
+                            if(modifyInput) {
+                                input.setStack(1 - i, ItemStack.EMPTY);
+                                onContentChanged(inventory);
+
+                            }
                         }
                     }
 
@@ -110,15 +111,23 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
 
     private ItemStack getOutputStack(ItemStack firstInput, ItemStack secondInput) {
         if ((firstInput.isOf(Items.BOOK) && secondInput.hasEnchantments() && !Boolean.TRUE.equals(secondInput.get(ModComponents.PLAYER_ENCHANTED))) || (secondInput.isOf(Items.BOOK) && firstInput.hasEnchantments() && !Boolean.TRUE.equals(firstInput.get(ModComponents.PLAYER_ENCHANTED)))) {
-            return this.transmogrify(firstInput, secondInput); //THIS IS WHAT IS INVOKED WHEN TRANSMUTING
+            return this.transmute(firstInput, secondInput); //THIS IS WHAT IS INVOKED WHEN TRANSMUTING
         }
         boolean bl = !firstInput.isEmpty() || !secondInput.isEmpty();
         if (!bl) {
             return ItemStack.EMPTY;
         } else if (firstInput.isOf(Items.ENCHANTED_BOOK) && secondInput.isOf(Items.BOOK)) {
+            if (Objects.requireNonNull(firstInput.get(DataComponentTypes.STORED_ENCHANTMENTS)).getSize()>1) {
                 return this.transferEnchantment(firstInput, secondInput);
+            } else {
+                return ItemStack.EMPTY;
+            }
         } else if (secondInput.isOf(Items.ENCHANTED_BOOK) && firstInput.isOf(Items.BOOK)) {
-            return this.transferEnchantment(secondInput, firstInput);
+            if (Objects.requireNonNull(secondInput.get(DataComponentTypes.STORED_ENCHANTMENTS)).getSize()>1) {
+                return this.transferEnchantment(secondInput, firstInput);
+            } else {
+                return ItemStack.EMPTY;
+            }
         } else if (firstInput.getCount() <= 1 && secondInput.getCount() <= 1) {
             boolean bl2 = !firstInput.isEmpty() && !secondInput.isEmpty();
             if (!bl2) {
@@ -132,12 +141,15 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
         }
     }
 
-    private ItemStack transmogrify (ItemStack firstInput, ItemStack secondInput){
+    private ItemStack transmute(ItemStack firstInput, ItemStack secondInput){
         if (firstInput.isOf(Items.BOOK) && secondInput.hasEnchantments() && !Boolean.TRUE.equals(secondInput.get(ModComponents.PLAYER_ENCHANTED))) {
             ItemStack book = Items.ENCHANTED_BOOK.getDefaultStack();
+            System.out.println(secondInput.getEnchantments());
+
             for (RegistryEntry<Enchantment> e : secondInput.getEnchantments().getEnchantments()){
                 book.addEnchantment(e,1);
             }
+            modifyInput = true;
             return book;
 
         } else if (secondInput.isOf(Items.BOOK) && firstInput.hasEnchantments() && !Boolean.TRUE.equals(firstInput.get(ModComponents.PLAYER_ENCHANTED))) {
@@ -145,6 +157,7 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
             for (RegistryEntry<Enchantment> e : firstInput.getEnchantments().getEnchantments()){
                 book.addEnchantment(e,1);
             }
+            modifyInput = true;
             return book;
         } else {
             return ItemStack.EMPTY;
