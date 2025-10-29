@@ -1,17 +1,14 @@
 package stipix.enchanting_decisions;
 
 
-import java.util.List;
+import java.util.Arrays;
 import java.util.Objects;
-import java.util.Optional;
 
-import com.google.common.collect.Lists;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.EnchantingPhrases;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.render.entity.model.BookModel;
 import net.minecraft.client.render.entity.model.EntityModelLayers;
@@ -21,12 +18,8 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.EnchantmentTags;
-import net.minecraft.screen.ScreenTexts;
-import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ColorHelper;
 import net.minecraft.util.math.MathHelper;
@@ -35,20 +28,28 @@ import org.spongepowered.asm.mixin.Unique;
 
 @Environment(EnvType.CLIENT)
 public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScreenHandler> {
-    public CustomEnchantmentScreen(CustomEnchantmentScreenHandler handler, PlayerInventory inventory, Text title) {
-        super(handler, inventory, title);
 
-        super.backgroundHeight = 169;
-        super.backgroundWidth = 193;
-        super.titleX = 4;
-        super.titleY = 5;
-        super.playerInventoryTitleX = 16;
-        super.playerInventoryTitleY = this.backgroundHeight - 90;
-        scroll = 0;
+
+
+    private static class ImageHolder {
+        public final Identifier[] PNG;
+        public final int width;
+        public final  int height;
+        public final  int x;
+        public final  int y;
+        public final  int rightX;
+        public final  int bottomY;
+        public ImageHolder(Identifier[] PNG, int width, int height, int x, int y) {
+            this.PNG = PNG;
+            this.width = width;
+            this.height = height;
+            this.x = x;
+            this.y = y;
+            this.rightX = x+width;
+            this.bottomY = y+height;
+        }
+
     }
-
-
-
     private final Random random = Random.create();
     private BookModel BOOK_MODEL;
     public float nextPageAngle;
@@ -59,28 +60,79 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
     public float pageTurningSpeed;
     private ItemStack stack = ItemStack.EMPTY;
 
+    ImageHolder background = new ImageHolder(
+            new Identifier[]{Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui.png")},
+            180,
+            160,
+            0,
+            0
+    );
 
-    private static final Identifier NEWTEXTURE = Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui.png");
-    private static final Identifier NEWBUTTONTEXTURE = Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-button-enabled.png");
-    private static final Identifier NEWBUTTONTEXTUREDISABLED = Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-button-disabled.png");
-    private static final Identifier NEWBUTTONTEXTUREHIGHLIGHTED = Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-button-highlighted.png");
-    private static final Identifier SCROLLBARTEXTURE = Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-scroll-bar.png");
-    private static final Identifier PIPTEXTUREON = Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-pip-on.png");
-    private static final Identifier PIPTEXTUREOFF = Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-pip-off.png");
-    private static final Identifier PIPTEXTURECURSED = Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-pip-cursed.png");
-//  private static final Identifier LEFTARROWTEXTURE = Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/left-arrow.png");
-//  private static final Identifier LEFTARROWTEXTUREHIGHLIGHTED = Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/left-arrow-highlighted.png");
-//  private static final Identifier RIGHTARROWTEXTURE = Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/right-arrow.png");
-//  private static final Identifier RIGHTARROWTEXTUREHIGHLIGHTED = Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/right-arrow-highlighted.png");
+    ImageHolder button = new ImageHolder(
+            new Identifier[]{
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-button-enabled.png"),
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-button-disabled.png"),
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-button-highlighted.png")
+            },
+            70,
+            16,
+            50,
+            4
+    );
 
+    ImageHolder pip = new ImageHolder(
+            new Identifier[]{
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-pip-on.png"),
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-pip-off.png"),
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-pip-cursed.png")
+            },
+            4,
+            4,
+            button.x + 2,
+            button.y + 11
+    );
+
+    ImageHolder scrollBar = new ImageHolder(
+            new Identifier[]{
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-scroll-bar.png")
+            },
+            9,
+            16,
+            124,
+            4
+    );
+
+    ImageHolder leftRight = new ImageHolder(
+            new Identifier[]{
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-leftright-on.png"),
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-leftright-leftoff.png"),
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-leftright-rightoff.png")
+            },
+            14,
+            5,
+            button.x + 54,
+            button.y + 10
+    );
     private static final Identifier BOOK_TEXTURE = Identifier.ofVanilla("textures/entity/enchanting_table_book.png");
 
     private static int scroll = 0;
-
-    private final int boxHeight = 16;
+    private static int[] lefttRightState = new  int[16];
 
     @Unique
     private boolean dragging = false;
+
+    public CustomEnchantmentScreen(CustomEnchantmentScreenHandler handler, PlayerInventory inventory, Text title) {
+        super(handler, inventory, title);
+
+        super.backgroundHeight = background.height;
+        super.backgroundWidth = background.width;
+        super.titleX = 5;
+        super.titleY = 5;
+        super.playerInventoryTitleX = 10;
+        super.playerInventoryTitleY = this.backgroundHeight - 80;
+        scroll = 0;
+        Arrays.fill(lefttRightState, 0);
+    }
 
     @Override
     protected void init() {
@@ -99,84 +151,153 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
 
     @Override
     public void drawBackground(DrawContext context, float deltaTicks, int mouseX, int mouseY) {
-        int x = (super.width - super.backgroundWidth) / 2;
-        int y = (super.height - super.backgroundHeight) / 2;
-        context.drawTexture(RenderPipelines.GUI_TEXTURED, NEWTEXTURE, x, y, 0.0F, 0.0F, super.backgroundWidth, super.backgroundHeight, 193, 169);
-        this.drawBook(context, x-10, y);
-        int k = super.handler.getLapisCount();
-        context.drawTexture(RenderPipelines.GUI_TEXTURED, SCROLLBARTEXTURE,x + 133, y+4+(scroll*49)/192, 0, 0, 12, 15, 12, 15);
-        context.enableScissor(x+50, y+5,x+50+70,y+4+16*4);
+        int leftmost = (super.width - super.backgroundWidth) / 2;
+        int topmost = (super.height - super.backgroundHeight) / 2;
+        context.drawTexture(
+                RenderPipelines.GUI_TEXTURED,
+                background.PNG[0],
+                leftmost+background.x,
+                topmost+background.y,
+                0.0F,
+                0.0F,
+                super.backgroundWidth,
+                super.backgroundHeight,
+                background.width,
+                background.height
+        );
+
+        this.drawBook(context, leftmost -10, topmost);
+
+        context.drawTexture(
+                RenderPipelines.GUI_TEXTURED,
+                scrollBar.PNG[0],
+                leftmost + scrollBar.x,
+                topmost +scrollBar.y+(scroll/4),
+                0,
+                0,
+                scrollBar.width,
+                scrollBar.height,
+                scrollBar.width,
+                scrollBar.height);
+
+        context.enableScissor(leftmost + button.x, topmost + button.y, leftmost + button.rightX, topmost+ button.y+ button.height*4);
 
         assert super.client != null;
         assert super.client.world != null;
         Registry<Enchantment> EnchantRegistry =  super.client.world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
+
         //Iterate over all 16 buttons
         for(int i = 0; i < 16; i++){
             //access custom mixin variables
             //only check for buttons that can be rendered
-            if((boxHeight*i - scroll >= boxHeight*-1) && (boxHeight*i - scroll < boxHeight*5) ){
-
-                int enchantmentID = handler.getEnchants()[i];
-                int enchantmentMaxTier = handler.getEnchantsTier()[i];
-                int selectedTier = handler.getSelectedTier()[i];
-                //chack for if there is an enchantment to display
-                if( enchantmentID != -1){
-
-                    //adaptively change drawn texture if the user is hovering over it
-                    Identifier curBox;
-                    if(mouseY - y -4 >= boxHeight*i-scroll && mouseY - y -4 < boxHeight*(i+1)-scroll
-                            && mouseX - x >= 50 && mouseX - x < 120 && mouseY -y > 4 && mouseY -y < 68){
-                        curBox = NEWBUTTONTEXTUREHIGHLIGHTED;
-                    } else {
-                        curBox = NEWBUTTONTEXTURE;
-                    }
-                    context.drawTexture(RenderPipelines.GUI_TEXTURED,
-                            curBox,
-                            x + 50,
-                            y + 4 + boxHeight * i - scroll,
-                            0, 0,
-                            70, 16,
-                            70, 16);
-
-                    for(int j = 0; j < Math.max(enchantmentMaxTier, selectedTier); j++){
-                        Identifier curPip;
-                        if(selectedTier > j){
-                            if(EnchantRegistry.getEntry(EnchantRegistry.get(enchantmentID)).isIn(EnchantmentTags.CURSE)
-                            ||  selectedTier > enchantmentMaxTier  && enchantmentMaxTier <= j){
-                                curPip = PIPTEXTURECURSED;
-                            } else {
-                                curPip = PIPTEXTUREON;
-                            }
-                        }else{
-                            curPip = PIPTEXTUREOFF;
-                        }
-
-                        context.drawTexture(RenderPipelines.GUI_TEXTURED,
-                                curPip,
-                                x + 52 + j*5,
-                                y + 15 + boxHeight * i - scroll,
-                                0, 0,
-                                4, 4,
-                                4, 4);
-                    }
-
-                    //massive process just to get the enchantment as text in the user's language and render it
-                    String enchantString = EnchantRegistry.getEntry(EnchantRegistry.get(enchantmentID)).getIdAsString();
-                    enchantString = enchantString.replaceFirst("minecraft:", "");
-                    enchantString = "enchantment.minecraft.".concat(enchantString);
-                    Text enchantText = Text.translatable(enchantString);
-                    enchantString = enchantText.asTruncatedString(11);
-                    if(!Objects.equals(enchantString, enchantText.getString())){
-                        enchantString = enchantString.concat("...");
-                    }
-                    context.drawText(this.textRenderer, enchantString, x+52, y+7+boxHeight*i-scroll,ColorHelper.fullAlpha((-9937334 & 16711422)), false);
-
-
-                } else {
-
-                    context.drawTexture(RenderPipelines.GUI_TEXTURED, NEWBUTTONTEXTUREDISABLED, x + 50, y + 4 + boxHeight * i - scroll, 0, 0, 70, 16, 70, 16);
-                }
+            if( !((button.height*i - scroll >= button.height*-1) &&
+                (button.height*i - scroll < button.height*5)) ) {
+                continue;
             }
+            int enchantmentID = handler.getEnchants()[i];
+            int enchantmentMaxTier = handler.getEnchantsTier()[i];
+            int selectedTier = handler.getSelectedTier()[i];
+
+            //chack for if there is an enchantment to display
+            if( enchantmentID == -1){
+
+                context.drawTexture(
+                        RenderPipelines.GUI_TEXTURED,
+                        button.PNG[1],
+                        leftmost + button.x,
+                        topmost + button.y + button.height * i - scroll,
+                        0, 0,
+                        button.width, button.height,
+                        button.width, button.height);
+                continue;
+            }
+
+
+            //adaptively change drawn texture if the user is hovering over it
+            Identifier curBox;
+            if(
+                mouseInBounds(
+                    mouseX-leftmost, mouseY-topmost,
+                    button.x,
+                    button.rightX,
+                    button.y+button.height*i - scroll,
+                    button.bottomY+button.height*i - scroll
+                )
+                &&
+                mouseInBounds(
+                    mouseX-leftmost, mouseY-topmost,
+                    button.x,
+                    button.rightX,
+                    button.y,
+                    button.y +button.height*4
+                )
+            ){
+                curBox = button.PNG[2];
+            } else {
+                curBox = button.PNG[0];
+            }
+
+            context.drawTexture(RenderPipelines.GUI_TEXTURED,
+                    curBox,
+                    leftmost + button.x,
+                    topmost + button.y + button.height * i - scroll,
+                    0, 0,
+                    button.width, button.height,
+                    button.width, button.height);
+
+            context.drawTexture(RenderPipelines.GUI_TEXTURED,
+                    leftRight.PNG[lefttRightState[i]],
+                    leftmost + leftRight.x,
+                    topmost + leftRight.y + button.height * i - scroll,
+                    0, 0,
+                    leftRight.width, leftRight.height,
+                    leftRight.width, leftRight.height);
+
+            for(int j = 0; j < Math.max(enchantmentMaxTier, selectedTier); j++){
+                Identifier curPip;
+                if(selectedTier > j){
+                    if(EnchantRegistry.getEntry(EnchantRegistry.get(enchantmentID)).isIn(EnchantmentTags.CURSE)
+                    ||  selectedTier > enchantmentMaxTier  && enchantmentMaxTier <= j){
+                        curPip = pip.PNG[2];//cursed
+                    } else {
+                        curPip = pip.PNG[0];//on
+                    }
+                }else{
+                    curPip = pip.PNG[1];//off
+                }
+
+                context.drawTexture(RenderPipelines.GUI_TEXTURED,
+                        curPip,
+                        leftmost + pip.x + j*(pip.width +1),
+                        topmost + pip.y + button.height * i - scroll,
+                        0, 0,
+                        pip.width, pip.height,
+                        pip.width, pip.height);
+            }
+
+            //massive process just to get the enchantment as text in the user's language and render it
+//            String enchantString = EnchantRegistry.getEntry(EnchantRegistry.get(enchantmentID)).getIdAsString();
+//            enchantString = enchantString.replaceFirst("minecraft:", "");
+//            enchantString = "enchantment.minecraft.".concat(enchantString);
+//            Text enchantText = Text.translatable(enchantString);
+//            enchantString = enchantText.asTruncatedString(11);
+//            if(!Objects.equals(enchantString, enchantText.getString())){
+//                enchantString = enchantString.concat("...");
+//            }
+
+            String string = Objects.requireNonNull(EnchantRegistry.getId(EnchantRegistry.get(enchantmentID))).toShortTranslationKey();
+            Text text = Text.translatable(string);
+            string = text.asTruncatedString(11);
+            if(!Objects.equals(string, text.getString())){
+                string = string.concat("...");
+            }
+            context.drawText(
+                    this.textRenderer,
+                    string,
+                    leftmost +52, topmost +7+ button.height*i-scroll,
+                    ColorHelper.fullAlpha((-9937334 & 16711422)), false
+            );
+
         }
 
         context.disableScissor();
@@ -184,6 +305,7 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
+        assert this.client != null;
         float f = this.client.getRenderTickCounter().getTickProgress(false);
         super.render(context, mouseX, mouseY, f);
         this.drawMouseoverTooltip(context, mouseX, mouseY);
@@ -203,24 +325,43 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
     }
     @Override
         public boolean mouseClicked(Click click, boolean doubled){
-            int x = (super.width - super.backgroundWidth) / 2;
-            int y = (super.height - super.backgroundHeight) / 2;
-            if(click.x()-x > 50 && click.x()-x < 120 && click.y()-y > 4 && click.y()-y < 68) {
+            int leftmost = (super.width - super.backgroundWidth) / 2;
+            int topmost = (super.height - super.backgroundHeight) / 2;
 
+            if(mouseInBounds((int)click.x()-leftmost,(int)click.y()-topmost,
+                    button.x, button.x+ button.width,
+                    button.y, button.y+button.height*4)){
 
                 for (int i = 0; i < 16; i++) {
-
-                    if (click.y() - y - 4 >= boxHeight * i - scroll && click.y() - y - 4 < boxHeight * (i + 1) - scroll) {
+                    if(mouseInBounds(
+                            (int)click.x()-leftmost, (int)click.y()-topmost- button.y,
+                            button.x, button.x+button.width,
+                            button.height*i-scroll,button.height*(i+1)-scroll
+                        )
+                    ){
                         int enchantID = handler.getEnchants()[i];
-                        if (click.x() - x > 50 && click.x() - x < 120 && enchantID != -1) {
+                        if (click.x() - leftmost > button.x && click.x() - leftmost < button.rightX && enchantID != -1) {
                             assert this.client != null;
                             int addsub = 0;
-                            if (click.button() == InputUtil.GLFW_MOUSE_BUTTON_LEFT) {
+                            if(mouseInBounds(
+                                    (int)click.x()-leftmost, (int)click.y()-topmost,
+                                    leftRight.x, leftRight.x + leftRight.width/2,
+                                    button.height*i-scroll+leftRight.y,button.height*(i)-scroll+leftRight.bottomY)
+                            ){
+                                lefttRightState[i] = 1;
+                                addsub = 1;
+                            } else if(mouseInBounds(
+                                    (int)click.x()-leftmost, (int)click.y()-topmost,
+                                    leftRight.x + leftRight.width/2, leftRight.rightX,
+                                    button.height*i-scroll+leftRight.y,button.height*(i)-scroll+leftRight.bottomY)
+                            ){
+                                lefttRightState[i] = 2;
                                 addsub = 2;
-                            } else if (click.button() == InputUtil.GLFW_MOUSE_BUTTON_RIGHT) {
-                                assert super.client.world != null;
-                                Registry<Enchantment> EnchantRegistry = super.client.world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
-                                if (!EnchantRegistry.getEntry(EnchantRegistry.get(enchantID)).isIn(EnchantmentTags.CURSE)) {
+                            } else {
+                                if (click.button() == InputUtil.GLFW_MOUSE_BUTTON_LEFT) {
+
+                                    addsub = 2;
+                                } else if (click.button() == InputUtil.GLFW_MOUSE_BUTTON_RIGHT) {
                                     addsub = 1;
                                 }
                             }
@@ -274,15 +415,29 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
 
     @Override
     public boolean mouseDragged (Click click, double offsetX, double offsetY) {
-        int x = (super.width - super.backgroundWidth) / 2;
-        int y = (super.height - super.backgroundHeight) / 2;
-        if(((click.x() > x + 133) && (click.x() < (x+ 133 + 12)))
-                && (click.y()> (y + 4 + ((scroll * 49) / 192))) && (click.y() < (y + 4 + ((scroll * 49) / 192) + 15))
-                || (dragging && click.y() >= y+4 && click.y() < y+53) ){
+        int leftmost = (super.width - super.backgroundWidth) / 2;
+        int topmost = (super.height - super.backgroundHeight) / 2;
+
+        if(mouseInBounds(
+                (int)click.x()-leftmost,
+                (int)click.y()-topmost,
+                scrollBar.x,
+                scrollBar.x+scrollBar.width,
+                scrollBar.y+scroll/4,
+                scrollBar.y+scrollBar.height+scroll/4
+            )
+            ||
+            (dragging && mouseInBounds(
+                (int)click.x()-leftmost,
+                (int)click.y()-topmost,
+                0, background.width,
+                0, background.height
+                )
+            )
+        ){
             dragging = true;
-            scroll += (int)(offsetY*4);
-            if(scroll < 0){scroll = 0;}
-            if(scroll > boxHeight*12){scroll = boxHeight*12;}
+            scroll += (int) (offsetY*4);
+            scroll = Math.clamp(scroll, 0, button.height*(16-4));//subtract 4 for the 4 buttons displayed at any time
         }
         return super.mouseDragged(click, offsetX, offsetY);
     }
@@ -291,14 +446,18 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
 
     public boolean mouseReleased(Click click){
         dragging = false;
+        Arrays.fill(lefttRightState, 0);
         return super.mouseReleased(click);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         scroll -= (int) (verticalAmount*6);
-        if(scroll < 0){scroll = 0;}
-        if(scroll > boxHeight*12){scroll = boxHeight*12;}
+        scroll = Math.clamp(scroll, 0, button.height*(16-4));//subtract 4 for the 4 buttons displayed at any time
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+
+    private boolean mouseInBounds(int mouseX, int mouseY, int left, int right, int top, int bottom) {
+        return (mouseX > left && mouseX < right && mouseY > top && mouseY < bottom );
     }
 }

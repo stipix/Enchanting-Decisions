@@ -97,7 +97,7 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                 return 1;
             }
         });
-        this.addSlot(new Slot(this.newinventory, 1, 171, 4) {
+        this.addSlot(new Slot(this.newinventory, 1, 158, 4) {
             @Override
             public boolean canInsert(ItemStack stack) {
                 return stack.isOf(Items.LAPIS_LAZULI);
@@ -109,13 +109,13 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                 return CustomEnchantmentScreenHandler.EMPTY_LAPIS_LAZULI_SLOT_TEXTURE;
             }
         });
-        this.addSlot(new Slot(this.newinventory, 2, 171, 46) {
+        this.addSlot(new Slot(this.newinventory, 2, 158, 46) {
             @Override
             public boolean canInsert(ItemStack stack) {
                 return false;
             }
         });
-        this.addPlayerSlots(playerInventory, 16, 89);
+        this.addPlayerSlots(playerInventory, 10, 80);
         for(int i = 0; i < 16; i++) {
             this.addProperty(Property.create(enchantment, i));
         }
@@ -249,7 +249,8 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                 enchantmentTier[i] = 0;
                 selectedTier[i] = 0;
             }
-            //iterates over both arrays
+
+            //iterate over the available list to
             availableList.sort(Comparator.comparing(enchant ->
                     Text.translatable("enchantment.minecraft.".concat(EnchantRegistry.getEntry(enchant).getIdAsString().replaceFirst("minecraft:", ""))).getString()));
             for (Enchantment available : availableList) {
