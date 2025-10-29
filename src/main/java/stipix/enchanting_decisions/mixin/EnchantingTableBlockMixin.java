@@ -6,6 +6,7 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.ChiseledBookshelfBlockEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.util.collection.DefaultedList;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -52,7 +53,12 @@ public abstract class EnchantingTableBlockMixin {
             BlockEntity inventory = world.getBlockEntity(tablePos.add(providerOffset));
             if(inventory instanceof ChiseledBookshelfBlockEntity) {
                 DefaultedList<ItemStack> books = ((ChiseledBookshelfBlockEntity) inventory).getHeldStacks();
-                return !books.isEmpty();
+                for(ItemStack book : books){
+                    if(book.getItem() == Items.BOOK || book.getItem() == Items.ENCHANTED_BOOK){
+                        return true;
+                    }
+                }
+                return false;
             }
         }
         return false;
