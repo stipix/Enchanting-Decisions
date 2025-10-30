@@ -43,7 +43,7 @@ public class EnchantabilityCosts {
     public static final EnchantabilityCost IMPALING = new EnchantabilityCost(Enchantments.IMPALING, new int[]{2, 3, 5, 7, 8});
     public static final EnchantabilityCost RIPTIDE = new EnchantabilityCost(Enchantments.RIPTIDE, new int[]{5, 10});
     public static final EnchantabilityCost CHANNELING = new EnchantabilityCost(Enchantments.CHANNELING, new int[]{8});
-    public static final EnchantabilityCost MULTISHOT = new EnchantabilityCost(Enchantments.MULTISHOT, new int[]{6});
+    public static final EnchantabilityCost MULTISHOT = new EnchantabilityCost(Enchantments.MULTISHOT, new int[]{6, 10});
     public static final EnchantabilityCost QUICK_CHARGE = new EnchantabilityCost(Enchantments.QUICK_CHARGE, new int[]{4, 8});
     public static final EnchantabilityCost PIERCING = new EnchantabilityCost(Enchantments.PIERCING, new int[]{2, 4, 6, 8});
     public static final EnchantabilityCost DENSITY = new EnchantabilityCost(Enchantments.DENSITY, new int[]{2, 4, 6, 8, 10});

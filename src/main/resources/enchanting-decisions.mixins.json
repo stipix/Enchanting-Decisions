@@ -7,7 +7,6 @@
     "EnchantingTableBlockEntityMixin",
     "EnchantingTableBlockMixin",
     "ExperienceOrbEntityMixin",
-    "FishingBobberEntityMixin",
     "GrindstoneBlockMixin",
     "LootTableMixin",
     "ToolMaterialMixin"

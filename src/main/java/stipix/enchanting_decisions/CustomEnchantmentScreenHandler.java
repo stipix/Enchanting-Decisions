@@ -192,8 +192,10 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                     }
                 }
             }
-            if (!inputStack.isEmpty() && outputstack.isEmpty() &&
-                    ((inputStack.isEnchantable()||inputStack.isOf(Items.FLINT_AND_STEEL))||inputStack.hasEnchantments()) && !inputStack.isOf(Items.BOOK)) {
+            if (!inputStack.isEmpty() && outputstack.isEmpty()
+                    && ((inputStack.isEnchantable()||inputStack.isOf(Items.FLINT_AND_STEEL)||inputStack.isOf(Items.SHIELD)||inputStack.isOf(Items.SHEARS))
+                         ||  inputStack.hasEnchantments())
+                    && !inputStack.isOf(Items.BOOK)) {
                 if(enchantment[0] == -1){//table has not been setup for use
                     checkNewItem(inventory, inputStack);
                 }
@@ -338,7 +340,6 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
     private Stream<Enchantment> checkAvailableEnchants(World world, BlockPos tablePos, BlockPos providerOffset){
         //create container stream
         Stream<Enchantment> containedEnchantments = Stream.empty();
-        ItemEnchantmentsComponent enchants = ItemEnchantmentsComponent.DEFAULT;
 
         //acquire the block state of the block being checked
         BlockState PowerSource = world.getBlockState(tablePos.add(providerOffset));
@@ -357,11 +358,13 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                 for (ItemStack itemStack : books) {
                     if (itemStack.getComponents().getTypes().contains(DataComponentTypes.STORED_ENCHANTMENTS)) {
                         Object enchant = itemStack.getOrDefault(DataComponentTypes.STORED_ENCHANTMENTS, 0);
-                        if(enchant instanceof ItemEnchantmentsComponent) {
-                            for (RegistryEntry<Enchantment> enchantmentRegistry : ((ItemEnchantmentsComponent) enchant).getEnchantments()) {
+                        if(enchant instanceof ItemEnchantmentsComponent enchantmentsComponent) {
+                            for (RegistryEntry<Enchantment> enchantmentRegistry : enchantmentsComponent.getEnchantments()) {
                                 Enchantment enchantment = enchantmentRegistry.value();
                                 //append the contained enchantment to the output steam
-                                containedEnchantments = Stream.concat(containedEnchantments, Stream.of(enchantment));
+                                for(int i = 0; i < enchantmentsComponent.getLevel(enchantmentRegistry); i++){
+                                    containedEnchantments = Stream.concat(containedEnchantments, Stream.of(enchantment));
+                                }
 
                             }
                         }
@@ -458,6 +461,28 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
         } else {
             enchantability = 0;
         }
+        if(newinventory.getStack(0).isOf(Items.TRIDENT)){
+            return  20;
+        }
+        if(newinventory.getStack(0).isOf(Items.FISHING_ROD)){
+            return  16;
+        }
+        if(newinventory.getStack(0).isOf(Items.FLINT_AND_STEEL)){
+            return  16;
+        }
+        if(newinventory.getStack(0).isOf(Items.CROSSBOW)){
+            return  20;
+        }
+        if(newinventory.getStack(0).isOf(Items.BOW)){
+            return  20;
+        }
+        if(newinventory.getStack(0).isOf(Items.SHEARS)){
+            return  16;
+        }
+        if(newinventory.getStack(0).isOf(Items.SHIELD)){
+            return  20;
+        }
+
         return enchantability;
     }
 
