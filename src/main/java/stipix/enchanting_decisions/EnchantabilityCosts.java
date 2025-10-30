@@ -3,16 +3,10 @@ package stipix.enchanting_decisions;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.entry.RegistryEntry;
-import org.jetbrains.annotations.NotNull;
-import org.spongepowered.include.com.google.common.collect.Sets;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 public class EnchantabilityCosts {
     public static final EnchantabilityCost PROTECTION = new EnchantabilityCost(Enchantments.PROTECTION, new int[]{2, 5, 8, 10});
@@ -60,7 +54,7 @@ public class EnchantabilityCosts {
 
 
 
-    private static final Set<EnchantabilityCost> enchantabilityCosts = Sets.newHashSet();
+    private static final Map<RegistryKey<Enchantment>, EnchantabilityCost> enchantabilityCosts = new HashMap<>();
 
 
     public EnchantabilityCosts(){
@@ -109,17 +103,13 @@ public class EnchantabilityCosts {
 
 
     }
-    public boolean register(EnchantabilityCost newEnchantability){
-        return enchantabilityCosts.add(newEnchantability);
+    public void register(EnchantabilityCost newEnchantability){
+        enchantabilityCosts.put(newEnchantability.enchantment(), newEnchantability);
     }
 
     static public Optional<EnchantabilityCost> getEnchantabilityCost(RegistryKey<Enchantment> enchantment){
         Optional<EnchantabilityCost> optional = Optional.empty();
-        for(EnchantabilityCost enchantabilityCost : enchantabilityCosts){
-            if(enchantabilityCost.enchantment().equals(enchantment)){
-                optional = Optional.of(enchantabilityCost);
-            }
-        }
+        optional = Optional.of(enchantabilityCosts.get(enchantment));
         return optional;
     }
 
@@ -129,20 +119,23 @@ public class EnchantabilityCosts {
             int level = itemStack.getEnchantments().getLevel(enchantment);
 
             Optional<RegistryKey<Enchantment>> keyOptional = enchantment.getKey();
-            if(keyOptional.isPresent()){
-                Optional<EnchantabilityCost> cost = EnchantabilityCosts.getEnchantabilityCost(keyOptional.get());
-                if(cost.isPresent()){
-                    if( level <= cost.get().levelValues().length && level > 0){
-                        used += cost.get().levelValues()[level - 1];
-                    } else if (level >cost.get().levelValues().length ){
-                        //in cases of enchantment above the max enchantment
-                        used += 15;
-                    }
-                }else {
-                    //so that non-registered mods have a defined enchantability
-                    used += level * 2;
-                }
+            if (keyOptional.isEmpty()) {
+                continue;
             }
+            Optional<EnchantabilityCost> cost = EnchantabilityCosts.getEnchantabilityCost(keyOptional.get());
+            if (cost.isEmpty()) {
+                //so that non-registered mods have a defined enchantability
+                used += level * 2;
+                continue;
+            }
+            if( level <= cost.get().levelValues().length && level > 0){
+                used += cost.get().levelValues()[level - 1];
+            } else if (level >cost.get().levelValues().length ){
+                //in cases of enchantment above the max enchantment
+                used += 15;
+            }
+
+
         }
         return used;
     }
