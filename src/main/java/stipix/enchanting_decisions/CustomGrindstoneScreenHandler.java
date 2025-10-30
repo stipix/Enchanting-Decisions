@@ -2,6 +2,7 @@ package stipix.enchanting_decisions;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.block.Blocks;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -17,17 +18,12 @@ import net.minecraft.registry.tag.EnchantmentTags;
 import net.minecraft.screen.*;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 
+import java.util.Objects;
+
 public class CustomGrindstoneScreenHandler extends ScreenHandler {
-    public static final int field_30793 = 35;
-    public static final int INPUT_1_ID = 0;
-    public static final int INPUT_2_ID = 1;
-    public static final int OUTPUT_ID = 2;
-    private static final int INVENTORY_START = 3;
-    private static final int INVENTORY_END = 30;
-    private static final int HOTBAR_START = 30;
-    private static final int HOTBAR_END = 39;
     private final Inventory result = new CraftingResultInventory();
     final Inventory input = new SimpleInventory(2) {
         @Override
@@ -39,6 +35,7 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
     private final ScreenHandlerContext context;
     private ItemStack originator;
     private boolean modifyInput = false;
+    private SoundEvent sound = SoundEvents.BLOCK_GRINDSTONE_USE;
 
     public CustomGrindstoneScreenHandler(int syncId, PlayerInventory playerInventory) {
         this(syncId, playerInventory, ScreenHandlerContext.EMPTY);
@@ -70,23 +67,37 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
                 context.run((world, pos) -> {
                     //world.syncWorldEvent(WorldEvents.LECTERN_BOOK_PAGE_TURNED, pos, 0);  //AUDIO (grindstone_used)
                     //world.playSoundClient(SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, SoundCategory.BLOCKS, 0.8f, MathHelper.clamp((float)Math.random(),0.7f,1.2f));
-                    world.playSound(null, pos, SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, SoundCategory.BLOCKS, 1.0f, world.random.nextFloat() * 0.1F + 0.9F);
+                    world.playSound(null, pos, sound, SoundCategory.BLOCKS, 1.0f, world.random.nextFloat() * 0.1F + 0.9F);
                 });
-                for (int i=0; i<2; i++){
-                    if(input.getStack(i).isOf(Items.BOOK)) {
-                        input.getStack(i).decrement(1);
-                        if (input.getStack(1 - i).isOf(Items.ENCHANTED_BOOK)) {
-                            //TODO - remove first enchantment from book
-                            //CustomGrindstoneScreenHandler.this.input.setStack(0, ItemStack.EMPTY);
-                            if(modifyInput) {
-                                input.setStack(1 - i, originator);
-                                onContentChanged(inventory);
+                if (!input.getStack(0).isEmpty() && !input.getStack(1).isEmpty()){
+                    for (int i = 0; i < 2; i++) {
+                        if (input.getStack(i).isOf(Items.BOOK)) {
+                            input.getStack(i).decrement(1);
+                            if (input.getStack(1 - i).isOf(Items.ENCHANTED_BOOK)) {
+                                //TODO - remove first enchantment from book
+                                //CustomGrindstoneScreenHandler.this.input.setStack(0, ItemStack.EMPTY);
+                                if (modifyInput) {
+                                    input.setStack(1 - i, originator);
+                                    onContentChanged(inventory);
+                                }
+                            } else if (input.getStack(1 - i).hasEnchantments()) {
+                                if (modifyInput) {
+                                    input.setStack(1 - i, ItemStack.EMPTY);
+                                    onContentChanged(inventory);
+
+                                }
                             }
+                        }
+                    }
+                } else {
+                    for (int i = 0; i < 2; i++) {
+                        if (input.getStack(i).isOf(Items.ENCHANTED_BOOK)) {
+                            input.getStack(i).decrement(1);
+                            onContentChanged(inventory);
                         }
                     }
 
                 }
-
 
             } //end of onTakeItem()
 
@@ -110,15 +121,23 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
 
     private ItemStack getOutputStack(ItemStack firstInput, ItemStack secondInput) {
         if ((firstInput.isOf(Items.BOOK) && secondInput.hasEnchantments() && !Boolean.TRUE.equals(secondInput.get(ModComponents.PLAYER_ENCHANTED))) || (secondInput.isOf(Items.BOOK) && firstInput.hasEnchantments() && !Boolean.TRUE.equals(firstInput.get(ModComponents.PLAYER_ENCHANTED)))) {
-            return this.transmogrify(firstInput, secondInput); //THIS IS WHAT IS INVOKED WHEN TRANSMUTING
+            return this.transmute(firstInput, secondInput); //THIS IS WHAT IS INVOKED WHEN TRANSMUTING
         }
         boolean bl = !firstInput.isEmpty() || !secondInput.isEmpty();
         if (!bl) {
             return ItemStack.EMPTY;
         } else if (firstInput.isOf(Items.ENCHANTED_BOOK) && secondInput.isOf(Items.BOOK)) {
+            if (Objects.requireNonNull(firstInput.get(DataComponentTypes.STORED_ENCHANTMENTS)).getSize()>1) {
                 return this.transferEnchantment(firstInput, secondInput);
+            } else {
+                return ItemStack.EMPTY;
+            }
         } else if (secondInput.isOf(Items.ENCHANTED_BOOK) && firstInput.isOf(Items.BOOK)) {
-            return this.transferEnchantment(secondInput, firstInput);
+            if (Objects.requireNonNull(secondInput.get(DataComponentTypes.STORED_ENCHANTMENTS)).getSize()>1) {
+                return this.transferEnchantment(secondInput, firstInput);
+            } else {
+                return ItemStack.EMPTY;
+            }
         } else if (firstInput.getCount() <= 1 && secondInput.getCount() <= 1) {
             boolean bl2 = !firstInput.isEmpty() && !secondInput.isEmpty();
             if (!bl2) {
@@ -132,12 +151,16 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
         }
     }
 
-    private ItemStack transmogrify (ItemStack firstInput, ItemStack secondInput){
+    private ItemStack transmute(ItemStack firstInput, ItemStack secondInput){
         if (firstInput.isOf(Items.BOOK) && secondInput.hasEnchantments() && !Boolean.TRUE.equals(secondInput.get(ModComponents.PLAYER_ENCHANTED))) {
             ItemStack book = Items.ENCHANTED_BOOK.getDefaultStack();
+            System.out.println(secondInput.getEnchantments());
+
             for (RegistryEntry<Enchantment> e : secondInput.getEnchantments().getEnchantments()){
                 book.addEnchantment(e,1);
             }
+            modifyInput = true;
+            sound = SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE;
             return book;
 
         } else if (secondInput.isOf(Items.BOOK) && firstInput.hasEnchantments() && !Boolean.TRUE.equals(firstInput.get(ModComponents.PLAYER_ENCHANTED))) {
@@ -145,6 +168,8 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
             for (RegistryEntry<Enchantment> e : firstInput.getEnchantments().getEnchantments()){
                 book.addEnchantment(e,1);
             }
+            modifyInput = true;
+            sound = SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE;
             return book;
         } else {
             return ItemStack.EMPTY;
@@ -162,7 +187,7 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
             ItemEnchantmentsComponent itemEnchantmentsComponent = EnchantmentHelper.getEnchantments(firstInput);
 
             for (Object2IntMap.Entry<RegistryEntry<Enchantment>> entry : itemEnchantmentsComponent.getEnchantmentEntries()) {
-                RegistryEntry<Enchantment> registryEntry = (RegistryEntry<Enchantment>)entry.getKey();
+                RegistryEntry<Enchantment> registryEntry = entry.getKey();
                 if (components.getLevel(registryEntry) == 0) {
                     components.add(registryEntry, entry.getIntValue());
                     return;
@@ -175,7 +200,7 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
             ItemEnchantmentsComponent itemEnchantmentsComponent = EnchantmentHelper.getEnchantments(firstInput);
             int i = 0;
             for (Object2IntMap.Entry<RegistryEntry<Enchantment>> entry : itemEnchantmentsComponent.getEnchantmentEntries()) {
-                RegistryEntry<Enchantment> registryEntry = (RegistryEntry<Enchantment>)entry.getKey();
+                RegistryEntry<Enchantment> registryEntry = entry.getKey();
                 if (components.getLevel(registryEntry) == 0) {
                     if(i>0) {
                         components.add(registryEntry, entry.getIntValue());
@@ -185,6 +210,7 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
                 }
             }
         });
+        sound = SoundEvents.ITEM_BOOK_PAGE_TURN;
         return resultant;
 
     }
@@ -198,6 +224,7 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
         if (item.isOf(Items.ENCHANTED_BOOK) && itemEnchantmentsComponent.isEmpty()) {
             item = item.withItem(Items.BOOK);
         }
+        sound = SoundEvents.BLOCK_GRINDSTONE_USE;
         return item;
     }
 
