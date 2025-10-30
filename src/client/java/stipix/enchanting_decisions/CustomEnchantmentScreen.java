@@ -19,6 +19,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.EnchantmentTags;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ColorHelper;
@@ -113,10 +114,57 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
             button.x + 54,
             button.y + 10
     );
+
+    ImageHolder enchantBar = new ImageHolder(
+            new Identifier[]{
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-enchant-bar.png"),
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-enchant-bar-cursed.png")
+            },
+            12,
+            62,
+            140,
+            5
+
+    );
+
+    ImageHolder enchantNotches = new ImageHolder(
+            new Identifier[]{
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-enchant-bar-notches.png")
+            },
+            5,
+            61,
+            148,
+            5
+
+    );
+
+    ImageHolder enchantabilityBar =  new ImageHolder(
+            new Identifier[]{
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-enchantability-existing.png"),
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-enchantability-new.png"),
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-enchantability-removed.png")
+            },
+            10,
+            62,
+            141,
+            6
+    );
+
+    ImageHolder fuelBar = new ImageHolder(
+            new Identifier[]{
+                    Identifier.of(EnchantingDecisions.MOD_ID, "textures/gui/enchantinggui-fuel-bar.png")
+            },
+            2,
+            63,
+            152,
+            5
+    );
+
     private static final Identifier BOOK_TEXTURE = Identifier.ofVanilla("textures/entity/enchanting_table_book.png");
 
     private static int scroll = 0;
-    private static int[] lefttRightState = new  int[16];
+    private static final int[] leftRightState = new  int[16];
+    private static final int maxEnchantability = 64;
 
     @Unique
     private boolean dragging = false;
@@ -129,9 +177,9 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
         super.titleX = 5;
         super.titleY = 5;
         super.playerInventoryTitleX = 10;
-        super.playerInventoryTitleY = this.backgroundHeight - 80;
+        super.playerInventoryTitleY = this.backgroundHeight - 89;
         scroll = 0;
-        Arrays.fill(lefttRightState, 0);
+        Arrays.fill(leftRightState, 0);
     }
 
     @Override
@@ -179,24 +227,136 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
                 scrollBar.height,
                 scrollBar.width,
                 scrollBar.height);
+        drawEnchantability(context, mouseX, mouseY, leftmost, topmost);
 
-        context.enableScissor(leftmost + button.x, topmost + button.y, leftmost + button.rightX, topmost+ button.y+ button.height*4);
+        drawEnchantments(context, mouseX, mouseY, leftmost, topmost, handler.getEnchants(), handler.getEnchantsTier(), handler.getSelectedTier());
+    }
+
+
+    private void drawEnchantability(DrawContext context, int mouseX, int mouseY, int leftmost, int topmost) {
+        context.enableScissor(leftmost+ enchantBar.x, topmost+enchantBar.y, leftmost+enchantBar.rightX+3, topmost+enchantBar.bottomY);
+
+        int enchantability = handler.getItemEnchantability();
+
+        //draw cursed bonus enchantability
+        context.drawTexture(
+                RenderPipelines.GUI_TEXTURED,
+                enchantBar.PNG[1],
+                leftmost + enchantBar.x,
+                topmost + enchantBar.y + ((maxEnchantability-enchantability-EnchantabilityCosts.getCursedEnchantability(handler.getPreposed()))
+                                              *enchantBar.height)/maxEnchantability,
+                0,
+                0,
+                enchantBar.width,
+                enchantBar.height,
+                enchantBar.width,
+                enchantBar.height);
+
+
+        //draw available enchantability
+        context.drawTexture(
+                RenderPipelines.GUI_TEXTURED,
+                enchantBar.PNG[0],
+                leftmost + enchantBar.x,
+                topmost + enchantBar.y + ((maxEnchantability-enchantability)*enchantBar.height)/maxEnchantability,
+                0,
+                0,
+                enchantBar.width,
+                enchantBar.height,
+                enchantBar.width,
+                enchantBar.height);
+
+
+        //draw existing enchantability Used
+        int enchantabilityExisting = EnchantabilityCosts.getEnchantabilityUsed(handler.getInput()) + EnchantabilityCosts.getCursedEnchantability(handler.getInput());
+        context.drawTexture(
+                RenderPipelines.GUI_TEXTURED,
+                enchantabilityBar.PNG[0],
+                leftmost + enchantabilityBar.x,
+                topmost + enchantabilityBar.y + ((maxEnchantability-enchantabilityExisting)*enchantabilityBar.height)/maxEnchantability,
+                0,
+                0,
+                enchantabilityBar.width,
+                enchantabilityBar.height,
+                enchantabilityBar.width,
+                enchantabilityBar.height);
+
+
+        int enchantabilityUsed = EnchantabilityCosts.getEnchantabilityUsed(handler.getPreposed()) + EnchantabilityCosts.getCursedEnchantability(handler.getPreposed());
+        int pngID;
+        int barTop;
+        int barBottom;
+        if(enchantabilityUsed > enchantabilityExisting) {
+            pngID = 1;
+            barTop = enchantabilityBar.y + ((maxEnchantability-enchantabilityUsed)*enchantabilityBar.height)/maxEnchantability;
+            barBottom = enchantabilityBar.y + ((maxEnchantability-enchantabilityExisting)*enchantabilityBar.height)/maxEnchantability;
+        }else {
+            pngID = 2;
+            barTop = enchantabilityBar.y + ((maxEnchantability-enchantabilityExisting)*enchantabilityBar.height)/maxEnchantability;
+            barBottom = enchantabilityBar.y + ((maxEnchantability-enchantabilityUsed)*enchantabilityBar.height)/maxEnchantability;
+        }
+
+        context.enableScissor(leftmost+enchantabilityBar.x, topmost+barTop, leftmost+enchantabilityBar.rightX, topmost+barBottom);
+        context.drawTexture(
+                RenderPipelines.GUI_TEXTURED,
+                enchantabilityBar.PNG[pngID],
+                leftmost + enchantabilityBar.x,
+                topmost + barTop,
+                0,
+                0,
+                enchantabilityBar.width,
+                enchantabilityBar.height,
+                enchantabilityBar.width,
+                enchantabilityBar.height);
+
+        context.disableScissor();
+        context.drawTexture(
+                RenderPipelines.GUI_TEXTURED,
+                fuelBar.PNG[0],
+                leftmost+fuelBar.x,
+                topmost+ fuelBar.y + ((maxEnchantability-handler.getLapisCount())*fuelBar.height)/maxEnchantability,
+                0,
+                0,
+                fuelBar.width,
+                fuelBar.height,
+                fuelBar.width,
+                fuelBar.height
+        );
+
+
+        context.drawTexture(
+                RenderPipelines.GUI_TEXTURED,
+                enchantNotches.PNG[0],
+                leftmost+enchantNotches.x,
+                topmost+enchantNotches.y,
+                0,
+                0,
+                enchantNotches.width,
+                enchantNotches.height,
+                enchantNotches.width,
+                enchantNotches.height
+        );
+        context.disableScissor();
+    }
+
+    private void drawEnchantments(DrawContext context, int mouseX, int mouseY, int leftmost, int topmost, int[] enchants, int[] enchantTiers, int[] selectedTiers) {
+        context.enableScissor(leftmost + button.x, topmost + button.y+1, leftmost + button.rightX, topmost + button.y+ button.height*4);
 
         assert super.client != null;
         assert super.client.world != null;
         Registry<Enchantment> EnchantRegistry =  super.client.world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
 
         //Iterate over all 16 buttons
-        for(int i = 0; i < 16; i++){
+        for(int i = 0; i < enchants.length; i++){
             //access custom mixin variables
             //only check for buttons that can be rendered
             if( !((button.height*i - scroll >= button.height*-1) &&
                 (button.height*i - scroll < button.height*5)) ) {
                 continue;
             }
-            int enchantmentID = handler.getEnchants()[i];
-            int enchantmentMaxTier = handler.getEnchantsTier()[i];
-            int selectedTier = handler.getSelectedTier()[i];
+            int enchantmentID = enchants[i];
+            int enchantmentMaxTier = enchantTiers[i];
+            int selectedTier = selectedTiers[i];
 
             //chack for if there is an enchantment to display
             if( enchantmentID == -1){
@@ -217,7 +377,7 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
             Identifier curBox;
             if(
                 mouseInBounds(
-                    mouseX-leftmost, mouseY-topmost,
+                    mouseX - leftmost, mouseY - topmost,
                     button.x,
                     button.rightX,
                     button.y+button.height*i - scroll,
@@ -225,7 +385,7 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
                 )
                 &&
                 mouseInBounds(
-                    mouseX-leftmost, mouseY-topmost,
+                    mouseX - leftmost, mouseY - topmost,
                     button.x,
                     button.rightX,
                     button.y,
@@ -246,7 +406,7 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
                     button.width, button.height);
 
             context.drawTexture(RenderPipelines.GUI_TEXTURED,
-                    leftRight.PNG[lefttRightState[i]],
+                    leftRight.PNG[leftRightState[i]],
                     leftmost + leftRight.x,
                     topmost + leftRight.y + button.height * i - scroll,
                     0, 0,
@@ -275,26 +435,14 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
                         pip.width, pip.height);
             }
 
-            //massive process just to get the enchantment as text in the user's language and render it
-//            String enchantString = EnchantRegistry.getEntry(EnchantRegistry.get(enchantmentID)).getIdAsString();
-//            enchantString = enchantString.replaceFirst("minecraft:", "");
-//            enchantString = "enchantment.minecraft.".concat(enchantString);
-//            Text enchantText = Text.translatable(enchantString);
-//            enchantString = enchantText.asTruncatedString(11);
-//            if(!Objects.equals(enchantString, enchantText.getString())){
-//                enchantString = enchantString.concat("...");
-//            }
-
-            String string = Objects.requireNonNull(EnchantRegistry.getId(EnchantRegistry.get(enchantmentID))).toShortTranslationKey();
-            Text text = Text.translatable(string);
-            string = text.asTruncatedString(11);
-            if(!Objects.equals(string, text.getString())){
-                string = string.concat("...");
+            Text enchantText = EnchantRegistry.getEntry(EnchantRegistry.get(enchantmentID)).value().description();
+            if(enchantText.getString().length() > 11){//shorten
+                enchantText = Text.of(enchantText.asTruncatedString(11).concat("..."));
             }
             context.drawText(
                     this.textRenderer,
-                    string,
-                    leftmost +52, topmost +7+ button.height*i-scroll,
+                    enchantText,
+                    leftmost +52, topmost +6+ button.height*i-scroll,
                     ColorHelper.fullAlpha((-9937334 & 16711422)), false
             );
 
@@ -348,14 +496,14 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
                                     leftRight.x, leftRight.x + leftRight.width/2,
                                     button.height*i-scroll+leftRight.y,button.height*(i)-scroll+leftRight.bottomY)
                             ){
-                                lefttRightState[i] = 1;
+                                leftRightState[i] = 1;
                                 addsub = 1;
                             } else if(mouseInBounds(
                                     (int)click.x()-leftmost, (int)click.y()-topmost,
                                     leftRight.x + leftRight.width/2, leftRight.rightX,
                                     button.height*i-scroll+leftRight.y,button.height*(i)-scroll+leftRight.bottomY)
                             ){
-                                lefttRightState[i] = 2;
+                                leftRightState[i] = 2;
                                 addsub = 2;
                             } else {
                                 if (click.button() == InputUtil.GLFW_MOUSE_BUTTON_LEFT) {
@@ -446,7 +594,7 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
 
     public boolean mouseReleased(Click click){
         dragging = false;
-        Arrays.fill(lefttRightState, 0);
+        Arrays.fill(leftRightState, 0);
         return super.mouseReleased(click);
     }
 
