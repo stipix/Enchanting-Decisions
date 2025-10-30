@@ -94,9 +94,10 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
                         if (input.getStack(i).isOf(Items.ENCHANTED_BOOK)) {
                             input.getStack(i).decrement(1);
                             onContentChanged(inventory);
+                        } else { //TODO - check if this is good
+                            input.setStack(i, ItemStack.EMPTY);
                         }
                     }
-
                 }
 
             } //end of onTakeItem()

@@ -6,10 +6,11 @@
     "AnvilBlockMixin",
     "EnchantingTableBlockEntityMixin",
     "EnchantingTableBlockMixin",
+    "ExperienceOrbEntityMixin",
+    "FishingBobberEntityMixin",
     "GrindstoneBlockMixin",
     "LootTableMixin",
-    "ToolMaterialMixin",
-    "ExperienceOrbEntityMixin"
+    "ToolMaterialMixin"
   ],
   "injectors": {
     "defaultRequire": 1
