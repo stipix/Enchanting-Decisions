@@ -139,4 +139,30 @@ public class EnchantabilityCosts {
         }
         return used;
     }
+
+    static public int getCursedEnchantability(ItemStack itemStack){
+
+        int used = 0;
+        for(RegistryEntry<Enchantment> enchantment : itemStack.getEnchantments().getEnchantments()){
+            int level = itemStack.getEnchantments().getLevel(enchantment);
+
+            Optional<RegistryKey<Enchantment>> keyOptional = enchantment.getKey();
+            if (keyOptional.isEmpty()) {
+                continue;
+            }
+            Optional<EnchantabilityCost> cost = EnchantabilityCosts.getEnchantabilityCost(keyOptional.get());
+            if (cost.isEmpty()) {
+                //so that non-registered mods have a defined enchantability
+                continue;
+            }
+            if( level <= cost.get().levelValues().length && level > 0){
+                if(cost.get().levelValues()[level - 1] < 0) {
+                    used -= cost.get().levelValues()[level - 1];
+                }
+            }
+
+
+        }
+        return used;
+    }
 }

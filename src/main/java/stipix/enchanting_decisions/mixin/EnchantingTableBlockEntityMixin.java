@@ -36,8 +36,14 @@ public abstract class EnchantingTableBlockEntityMixin extends BlockEntity implem
         return fuelLevel;
     }
     public void enchantingDecisions$setFuelLevel(int fuelLevel){
-        this.fuelLevel = fuelLevel;
-        markDirty();
+        if(fuelLevel < 64 && fuelLevel > 0){
+            this.fuelLevel = fuelLevel;
+            markDirty();
+        } else if(fuelLevel <= 0){
+            this.fuelLevel = 0;
+        }else {
+            this.fuelLevel = 64;
+        }
     }
 
 }
