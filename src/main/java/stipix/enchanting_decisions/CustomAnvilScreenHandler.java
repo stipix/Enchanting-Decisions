@@ -76,16 +76,24 @@ public class CustomAnvilScreenHandler extends ForgingScreenHandler {
    
         this.input.getStack(1).setCount(materialLeftover);
 
-        if (player instanceof ServerPlayerEntity serverPlayerEntity
-                && !StringHelper.isBlank(this.newItemName)
+
+        if (player instanceof ServerPlayerEntity serverPlayerEntity && //TODO - WHAT
+                !StringHelper.isBlank(this.newItemName)
                 && !this.input.getStack(0).getName().getString().equals(this.newItemName)) {
             serverPlayerEntity.getTextStream().filterText(this.newItemName);
+
+
         }
+
+
+
+
+
 
         this.input.setStack(0, ItemStack.EMPTY);
         this.context.run((world, pos) -> {
             BlockState blockState = world.getBlockState(pos);
-            if (!player.isInCreativeMode() && blockState.isIn(BlockTags.ANVIL) && player.getRandom().nextFloat() < 0.12F) {
+            if (!player.isInCreativeMode() && blockState.isIn(BlockTags.ANVIL) && player.getRandom().nextFloat() < 0.99F) { //99% chance of damaging
                 BlockState blockState2 = AnvilBlock.getLandingState(blockState);
                 if (blockState2 == null) {
                     world.removeBlock(pos, false);
@@ -130,7 +138,16 @@ public class CustomAnvilScreenHandler extends ForgingScreenHandler {
                     }
                     float repairTax;
                     if(targetCopy.get(DataComponentTypes.ENCHANTABLE)!= null) {
-                        repairTax = 0.15f*((float)EnchantabilityCosts.getEnchantabilityUsed(targetCopy) / (float) Objects.requireNonNull(targetCopy.get(DataComponentTypes.ENCHANTABLE)).value());
+                        float numerator = (float)EnchantabilityCosts.getEnchantabilityUsed(targetCopy);
+                        float denominator;
+
+                        try{
+                            denominator = MiscToolEnchantabilities.getEnchantability(targetCopy.getItem()).get();
+                        } catch (NullPointerException e) {
+                            denominator = (float)Objects.requireNonNull(targetCopy.get(DataComponentTypes.ENCHANTABLE)).value();
+                        }
+
+                        repairTax = (numerator/denominator)*0.18f;
                     }else{
                         repairTax = 0.0f;
                     }
@@ -155,14 +172,6 @@ public class CustomAnvilScreenHandler extends ForgingScreenHandler {
                 }
 
             }//end of repair section
-
-            if (this.newItemName != null && !StringHelper.isBlank(this.newItemName)) {
-                if (!this.newItemName.equals(originalInput.getName().getString())) {
-                    targetCopy.set(DataComponentTypes.CUSTOM_NAME, Text.literal(this.newItemName));
-                }
-            } else if (originalInput.contains(DataComponentTypes.CUSTOM_NAME)) {
-                targetCopy.remove(DataComponentTypes.CUSTOM_NAME);
-            }
 
             if (i <= 0) {
                 targetCopy = ItemStack.EMPTY;
@@ -193,7 +202,18 @@ public class CustomAnvilScreenHandler extends ForgingScreenHandler {
             }
 
         } else {
-            this.output.setStack(0, ItemStack.EMPTY);
+            ItemStack targetCopy = this.input.getStack(0).copy();
+            if (this.newItemName != null && !StringHelper.isBlank(this.newItemName) && this.input.getStack(1).isEmpty()) {
+                if (!this.newItemName.equals(originalInput.getName().getString())) {
+                    targetCopy.set(DataComponentTypes.CUSTOM_NAME, Text.literal(this.newItemName));
+                    this.output.setStack(0,targetCopy);
+                }
+            } else if (originalInput.contains(DataComponentTypes.CUSTOM_NAME)) {
+                targetCopy.remove(DataComponentTypes.CUSTOM_NAME);
+                this.output.setStack(0,targetCopy);
+            } else {
+                this.output.setStack(0, ItemStack.EMPTY);
+            }
         }
 
     }

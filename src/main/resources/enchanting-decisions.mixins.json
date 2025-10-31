@@ -4,12 +4,15 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "AnvilBlockMixin",
+    "ArmorMaterialMixin",
     "EnchantingTableBlockEntityMixin",
     "EnchantingTableBlockMixin",
     "ExperienceOrbEntityMixin",
     "GrindstoneBlockMixin",
     "LootTableMixin",
-    "ToolMaterialMixin"
+    "MiscToolRepairMixin",
+    "ToolMaterialMixin",
+    "TridentItemMixin"
   ],
   "injectors": {
     "defaultRequire": 1

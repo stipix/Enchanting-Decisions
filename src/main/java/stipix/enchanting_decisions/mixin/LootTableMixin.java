@@ -52,8 +52,6 @@ public class LootTableMixin {
                     }
                 }
             }
-
-
         }
         return itemStack2;
     }

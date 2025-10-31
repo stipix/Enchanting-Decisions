@@ -4,6 +4,7 @@ package stipix.enchanting_decisions;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -456,11 +457,18 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
     public int getItemEnchantability(){
         EnchantableComponent comp  = this.newinventory.getStack(0).getComponents().get(DataComponentTypes.ENCHANTABLE);
         int enchantability;
-        if(comp != null){
-            enchantability = comp.value();
-        } else {
-            enchantability = 0;
+
+        try{
+            enchantability = MiscToolEnchantabilities.getEnchantability(this.newinventory.getStack(0).getItem()).get();
+        } catch (NullPointerException e) {
+            if(comp != null) {
+                enchantability = comp.value();
+            } else {
+                enchantability = 0;
+            }
         }
+
+        /*
         if(newinventory.getStack(0).isOf(Items.TRIDENT)){
             return  20;
         }
@@ -482,8 +490,10 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
         if(newinventory.getStack(0).isOf(Items.SHIELD)){
             return  20;
         }
+        */
 
         return enchantability;
+
     }
 
     public ItemStack getPreposed(){
