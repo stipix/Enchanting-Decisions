@@ -19,6 +19,7 @@
       }
     ]
   },
+  "exclusive_set": "#enchanting-decisions:exclusive_set/infinity_trident",
   "max_cost": {
     "base": 50,
     "per_level_above_first": 0
@@ -31,6 +32,6 @@
   "slots": [
     "mainhand"
   ],
-  "supported_items": "#enchanting-decisions:enchantable/archery",
+  "supported_items": "#enchanting-decisions:enchantable/ranged",
   "weight": 1
 }

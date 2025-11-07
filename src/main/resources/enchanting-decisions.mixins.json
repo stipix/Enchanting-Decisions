@@ -12,6 +12,7 @@
     "LootTableMixin",
     "MiscToolRepairMixin",
     "ToolMaterialMixin",
+    "TridentEntityMixin",
     "TridentItemMixin"
   ],
   "injectors": {

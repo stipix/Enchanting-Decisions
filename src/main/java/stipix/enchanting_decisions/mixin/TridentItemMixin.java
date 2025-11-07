@@ -1,20 +1,19 @@
 package stipix.enchanting_decisions.mixin;
 
 import net.minecraft.component.EnchantmentEffectComponentTypes;
+import net.minecraft.component.type.ToolComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.MovementType;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.entity.projectile.TridentEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ProjectileItem;
-import net.minecraft.item.TridentItem;
+import net.minecraft.item.*;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -26,14 +25,20 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(TridentItem.class)
 public abstract class TridentItemMixin extends Item implements ProjectileItem {
+
+    @Unique
+    int IMPALING_LEVEL=0;
 
     public TridentItemMixin(Item.Settings settings) {
         super(settings);
@@ -53,6 +58,11 @@ public abstract class TridentItemMixin extends Item implements ProjectileItem {
 
     @Shadow
     public abstract int getMaxUseTime(ItemStack stack, LivingEntity user);
+
+    @Shadow
+    @Final
+    public static float ATTACK_DAMAGE;
+
 
     @Inject(method = "onStoppedUsing", at = @At("HEAD"),cancellable = true)
     public void onStoppedUsing(ItemStack stack, World world, LivingEntity user, int remainingUseTicks, CallbackInfoReturnable<Boolean> cir) {
@@ -102,25 +112,23 @@ public abstract class TridentItemMixin extends Item implements ProjectileItem {
                             for(RegistryEntry<Enchantment> e : stack.getEnchantments().getEnchantments()){
                                 if(e.matchesKey(Enchantments.INFINITY)){
                                     hasInfinity = true;
+                                    break;
                                 }
                             }
                             TridentEntity tridentEntity;
 
                             if(!hasInfinity){
                                 stack.damage(1, playerEntity);
-
                                 ItemStack itemStack = stack.splitUnlessCreative(1, playerEntity);
                                 tridentEntity = ProjectileEntity.spawnWithVelocity(TridentEntity::new, serverWorld, itemStack, playerEntity, 0.0F, 2.5F, 1.0F);
                                 if (playerEntity.isInCreativeMode()) {
                                     tridentEntity.pickupType = PersistentProjectileEntity.PickupPermission.CREATIVE_ONLY;
                                 }
                             }else{
-                                stack.damage(2, playerEntity);
-
-                                tridentEntity = ProjectileEntity.spawnWithVelocity(TridentEntity::new, serverWorld, stack, playerEntity, 0.0F, 2.5F, 0.0F);
+                                            stack.damage(2, playerEntity);
+                                        tridentEntity = ProjectileEntity.spawnWithVelocity(TridentEntity::new, serverWorld, stack, playerEntity, 0.0F, 2.5F, 0.0F);
                                 tridentEntity.pickupType = PersistentProjectileEntity.PickupPermission.DISALLOWED;
                             }
-
                                 world.playSoundFromEntity(null, tridentEntity, registryEntry.value(), SoundCategory.PLAYERS, 1.0F, 1.0F);
                                 cir.setReturnValue(true);
                                 cir.cancel();
@@ -134,6 +142,32 @@ public abstract class TridentItemMixin extends Item implements ProjectileItem {
             cir.cancel();
         }
     }
+
+    @Override
+    @Nullable
+    public DamageSource getDamageSource(LivingEntity user) {
+        if(user.getMainHandStack().getItem()==Items.TRIDENT){
+            IMPALING_LEVEL=EnchantmentHelper.getLevel(user.getRegistryManager().getEntryOrThrow(Enchantments.IMPALING),user.getMainHandStack());
+        }
+    return null;
+    }
+
+
+    @Override
+    public float getBonusAttackDamage(Entity target, float baseAttackDamage, DamageSource damageSource) {
+        //for(RegistryEntry<Enchantment> enchantment : itemStack.getEnchantments().getEnchantments()){
+        //    int level = itemStack.getEnchantments().getLevel(enchantment);
+
+        if(target.isTouchingWaterOrRain()){
+            return IMPALING_LEVEL*1.5F;
+
+        }else{
+            return 0.0F;
+        }
+
+
+    }
+
 
 
 }

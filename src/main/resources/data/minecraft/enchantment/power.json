@@ -21,6 +21,23 @@
             "type": "#minecraft:arrows"
           }
         }
+      },
+      {
+        "effect": {
+          "type": "minecraft:add",
+          "value": {
+            "type": "minecraft:linear",
+            "base": 1.0,
+            "per_level_above_first": 0.5
+          }
+        },
+        "requirements": {
+          "condition": "minecraft:entity_properties",
+          "entity": "direct_attacker",
+          "predicate": {
+            "items": "minecraft:firework_rocket"
+          }
+        }
       }
     ]
   },
@@ -28,7 +45,7 @@
     "base": 16,
     "per_level_above_first": 10
   },
-  "max_level": 5,
+  "max_level": 3,
   "min_cost": {
     "base": 1,
     "per_level_above_first": 10

@@ -16,11 +16,14 @@ public class ArmorMaterialMixin {
         if (material == ArmorMaterials.LEATHER) {
             cir.setReturnValue(32);
         }
+        else if (material == ArmorMaterials.COPPER){
+            cir.setReturnValue(28);
+        }
         else if (material == ArmorMaterials.CHAIN) {
             cir.setReturnValue(32);
         }
         else if (material == ArmorMaterials.IRON) {
-            cir.setReturnValue(28);
+            cir.setReturnValue(24);
         }
         else if (material == ArmorMaterials.DIAMOND) {
             cir.setReturnValue(28);

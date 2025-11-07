@@ -2,21 +2,11 @@ package stipix.enchanting_decisions;
 
 import net.fabricmc.api.ModInitializer;
 
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.resource.featuretoggle.FeatureSet;
-import net.minecraft.screen.ScreenHandlerType;
-import net.minecraft.util.Identifier;
-import org.apache.http.config.RegistryBuilder;
+import net.minecraft.item.Items;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-/*TODO: Add Lapis fuel consumption
-        Add Enchantability check
-            add enchantability costs
-        Replace villager behavior
+/*TODO: Replace villager behavior
         Edit Loot tables
 
  */
@@ -40,6 +30,7 @@ public class EnchantingDecisions implements ModInitializer {
         ModComponents.onInitialize();
         ModScreenHandlers.registerScreenHandlers();
         EnchantabilityCosts costs = new EnchantabilityCosts();
+        MiscToolEnchantabilities miscE = new MiscToolEnchantabilities();
 		LOGGER.info("Enchanting decisions initialized!");
-	}
+    }
 }

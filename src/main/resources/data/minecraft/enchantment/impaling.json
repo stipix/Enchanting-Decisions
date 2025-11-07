@@ -1,41 +1,42 @@
 {
   "anvil_cost": 4,
   "description": {
-    "translate": "enchantment.minecraft.punch"
+    "translate": "enchantment.minecraft.impaling"
   },
   "effects": {
-    "minecraft:knockback": [
+    "minecraft:damage": [
       {
         "effect": {
           "type": "minecraft:add",
           "value": {
             "type": "minecraft:linear",
-            "base": 2.0,
-            "per_level_above_first": 2
+            "base": 0,
+            "per_level_above_first": 0
           }
         },
         "requirements": {
           "condition": "minecraft:entity_properties",
-          "entity": "direct_attacker",
+          "entity": "this",
           "predicate": {
-            "type": "minecraft:firework_rocket"
+            "type": "#minecraft:sensitive_to_impaling"
           }
         }
       }
     ]
   },
+  "exclusive_set": "#minecraft:exclusive_set/damage",
   "max_cost": {
-    "base": 37,
-    "per_level_above_first": 20
+    "base": 21,
+    "per_level_above_first": 8
   },
-  "max_level": 3,
+  "max_level": 5,
   "min_cost": {
-    "base": 12,
-    "per_level_above_first": 20
+    "base": 1,
+    "per_level_above_first": 8
   },
   "slots": [
     "mainhand"
   ],
-  "supported_items": "#enchanting-decisions:enchantable/archery",
+  "supported_items": "#minecraft:enchantable/trident",
   "weight": 2
 }

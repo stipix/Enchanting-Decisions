@@ -3,6 +3,7 @@ package stipix.enchanting_decisions.mixin.client.hud;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.InGameHud;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.effect.StatusEffects;
@@ -104,10 +105,13 @@ public abstract class InGameHudMixin
     @Inject(method = "renderStatusBars", at = @At("HEAD"), cancellable = true)
     private void renderStatusBars(DrawContext context, CallbackInfo ci){
         int heightOffset = 32; //was 39
-
         PlayerEntity playerEntity = this.getCameraPlayer();
-
         if (playerEntity != null) {
+            if(playerEntity.getVehicle()!=null) //in case the player is riding something like a horse where they need the bar
+            {
+                heightOffset=39; //shifting the offset to account for mount status bar
+            }
+
             int i = MathHelper.ceil(playerEntity.getHealth());
             boolean bl = this.heartJumpEndTick > this.ticks && (this.heartJumpEndTick - this.ticks) / 3L % 2L == 1L;
             long l = Util.getMeasuringTimeMs();
