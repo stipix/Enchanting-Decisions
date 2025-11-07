@@ -2,7 +2,11 @@ package stipix.enchanting_decisions;
 
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.fabric.api.loot.v3.LootTableEvents;
 import net.minecraft.enchantment.Enchantments;
+import net.minecraft.item.Items;
+import net.minecraft.loot.LootPool;
+import net.minecraft.loot.entry.ItemEntry;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.resource.featuretoggle.FeatureSet;
@@ -40,6 +44,7 @@ public class EnchantingDecisions implements ModInitializer {
         ModComponents.onInitialize();
         ModScreenHandlers.registerScreenHandlers();
         EnchantabilityCosts costs = new EnchantabilityCosts();
+        MiscToolEnchantabilities miscToolEnchantabilities = new MiscToolEnchantabilities();
 		LOGGER.info("Enchanting decisions initialized!");
 	}
 }
