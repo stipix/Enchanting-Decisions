@@ -19,7 +19,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.EnchantmentTags;
-import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ColorHelper;
@@ -236,14 +235,14 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
     private void drawEnchantability(DrawContext context, int mouseX, int mouseY, int leftmost, int topmost) {
         context.enableScissor(leftmost+ enchantBar.x, topmost+enchantBar.y, leftmost+enchantBar.rightX+3, topmost+enchantBar.bottomY);
 
-        int enchantability = handler.getItemEnchantability();
+        int enchantability = handler.getItemEnchantability(handler.getInput());
 
         //draw cursed bonus enchantability
         context.drawTexture(
                 RenderPipelines.GUI_TEXTURED,
                 enchantBar.PNG[1],
                 leftmost + enchantBar.x,
-                topmost + enchantBar.y + ((maxEnchantability-enchantability-EnchantabilityCosts.getCursedEnchantability(handler.getPreposed()))
+                topmost + enchantBar.y + ((maxEnchantability-enchantability-EnchantabilityCosts.getCursedEnchantability(handler.getproposed()))
                                               *enchantBar.height)/maxEnchantability,
                 0,
                 0,
@@ -282,7 +281,7 @@ public class CustomEnchantmentScreen extends HandledScreen<CustomEnchantmentScre
                 enchantabilityBar.height);
 
 
-        int enchantabilityUsed = EnchantabilityCosts.getEnchantabilityUsed(handler.getPreposed()) + EnchantabilityCosts.getCursedEnchantability(handler.getPreposed());
+        int enchantabilityUsed = EnchantabilityCosts.getEnchantabilityUsed(handler.getproposed()) + EnchantabilityCosts.getCursedEnchantability(handler.getproposed());
         int pngID;
         int barTop;
         int barBottom;

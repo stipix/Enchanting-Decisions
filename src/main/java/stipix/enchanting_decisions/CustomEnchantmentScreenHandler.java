@@ -4,11 +4,10 @@ package stipix.enchanting_decisions;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 import net.fabricmc.fabric.api.item.v1.EnchantingContext;
+import net.minecraft.advancement.criterion.Criteria;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.EnchantingTableBlock;
@@ -24,11 +23,9 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.BlockTags;
@@ -38,7 +35,7 @@ import net.minecraft.screen.slot.Slot;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
+import net.minecraft.stat.Stats;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
@@ -46,7 +43,7 @@ import net.minecraft.world.World;
 
 public class CustomEnchantmentScreenHandler extends ScreenHandler{
     static final Identifier EMPTY_LAPIS_LAZULI_SLOT_TEXTURE = Identifier.ofVanilla("container/slot/lapis_lazuli");
-    private final Inventory newinventory;
+    private final Inventory inventory;
 
     private final ScreenHandlerContext context;
 
@@ -80,7 +77,7 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
         enchantment = new int[16];
         enchantmentTier = new int[16];
         selectedTier = new int[16];
-        newinventory = new SimpleInventory(3){
+        inventory = new SimpleInventory(3){
             @Override
             public void markDirty() {
                 super.markDirty();
@@ -98,14 +95,27 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                 fuel.set(fuelLevelInterface.enchantingDecisions$getFuelLevel());
             }
         }
-
-        this.addSlot(new Slot(this.newinventory, 0, 15, 46) {
+        //Input stack
+        this.addSlot(new Slot(this.inventory, 0, 15, 46) {
             @Override
             public int getMaxItemCount() {
                 return 1;
             }
+
+            @Override
+            public void setStack(ItemStack stack, ItemStack previousStack) {
+                onSetInput(stack);
+                super.setStack(stack, previousStack);
+            }
+
+            @Override
+            public void onTakeItem(PlayerEntity player, ItemStack stack) {
+                onTakeInput();
+                super.onTakeItem(player, stack);
+            }
         });
-        this.addSlot(new Slot(this.newinventory, 1, 158, 4) {
+        //lapis fuel stack
+        this.addSlot(new Slot(this.inventory, 1, 158, 5) {
             @Override
             public boolean canInsert(ItemStack stack) {
                 return stack.isOf(Items.LAPIS_LAZULI);
@@ -116,19 +126,49 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
             public Identifier getBackgroundSprite() {
                 return CustomEnchantmentScreenHandler.EMPTY_LAPIS_LAZULI_SLOT_TEXTURE;
             }
+
+            @Override
+            public void setStack(ItemStack stack, ItemStack previousStack) {
+                onRefuel(stack);
+                super.setStack(stack, previousStack);
+            }
         });
-        this.addSlot(new Slot(this.newinventory, 2, 158, 46) {
+        //output stack
+        this.addSlot(new Slot(this.inventory, 2, 158, 46) {
             @Override
             public boolean canInsert(ItemStack stack) {
                 return false;
             }
+//            @Override
+//            public ItemStack getStack() {
+//                if(fuel.get() >= usedEnchantable.get()){
+//                    return super.getStack();
+//                }else {
+//                    return ItemStack.EMPTY;
+//                }
+//            }
+//            @Override
+//            public boolean isEnabled(){
+//
+//                if(fuel.get() >= usedEnchantable.get()){
+//                    return super.isEnabled();
+//                }else {
+//                    return false;
+//                }
+//            }
             @Override
-            public ItemStack getStack() {
+            public boolean canTakeItems(PlayerEntity player) {
                 if(fuel.get() >= usedEnchantable.get()){
-                    return super.getStack();
+                    return super.isEnabled();
                 }else {
-                    return ItemStack.EMPTY;
+                    return false;
                 }
+            }
+
+            @Override
+            public void onTakeItem(PlayerEntity player, ItemStack stack) {
+                onTakeOutput(player, stack);
+                super.onTakeItem(player, stack);
             }
         });
         this.addPlayerSlots(playerInventory, 10, 80);
@@ -154,189 +194,193 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
         this.addProperty(Property.create(this.enchantmentLevel, 2));
     }
 
+    private void onRefuel(ItemStack fuelStack) {
 
-
-
-    @Override
-    public void onContentChanged(Inventory inventory){
-        CustomEnchantmentScreenHandler handler = this;
-        if (inventory == this.newinventory) {
-            ItemStack inputStack = inventory.getStack(0);
-            ItemStack fuelStack = inventory.getStack(1);
-            ItemStack outputstack = inventory.getStack(2);
-
-            if(!fuelStack.isEmpty()){
-                this.context.run((world, pos) -> {
-                    BlockEntity entity = world.getBlockEntity(pos);
-                    if(entity instanceof EtableFuelLevelInterface fuelInterface){
-                        int fuelAdded = Math.min(fuelStack.getCount(), (64-fuel.get())/2);
-                        fuelInterface.enchantingDecisions$setFuelLevel(fuel.get() + 2*fuelAdded);
-                        fuel.set(fuelInterface.enchantingDecisions$getFuelLevel());
-                        fuelStack.decrement(fuelAdded);
-                        if(fuelStack.isEmpty()){
-                            inventory.removeStack(1);
-                        }else{
-                        //    inventory.setStack(1, fuelStack);
-                        }
-                    }
-                });
-            }
-            //there are 4 possible states
-            //1) both slots are empty -> enchanting table not in use, do nothing
-            //2) input is full but output is empty -> new item is placed in the input slot, must generate new enchantments or output has been taken and the fuel is consumed and input is to be deleted
-            //3) output is full but input is empty -> input was taken out to refuse the enchantment, delete the proposed item
-            //4) both are full -> enchanting table in use, do nothing
-            if(!inputStack.isEmpty() && !outputstack.isEmpty()){
-                if(inputStack.getName() != outputstack.getName()){
-                    if((inputStack.isEnchantable()||inputStack.hasEnchantments()) && !inputStack.isOf(Items.BOOK)){
-                        checkNewItem(inventory, inputStack);
-                    }
-                }
-            }
-            if (!inputStack.isEmpty() && outputstack.isEmpty()
-                    && ((inputStack.isEnchantable()||inputStack.isOf(Items.FLINT_AND_STEEL)||inputStack.isOf(Items.SHIELD)||inputStack.isOf(Items.SHEARS))
-                         ||  inputStack.hasEnchantments())
-                    && !inputStack.isOf(Items.BOOK)) {
-                if(enchantment[0] == -1){//table has not been setup for use
-                    checkNewItem(inventory, inputStack);
-                }
-                else{//handles the completion of the enchanting process
-
-                    this.context.run((world, pos) -> {
-                        handler.enchantmentPower[0] = 0;
-                        for (int i = 0; i < enchantment.length; i++) {
-                            enchantment[i] = -1;
-                            enchantmentTier[i] = 0;
-                            selectedTier[i] = 0;
-                        }
-                        //unable to implement achievements and sfx(?) without player entity
-                        //                    player.incrementStat(Stats.ENCHANT_ITEM);
-                        //                    if (player instanceof ServerPlayerEntity) {
-                        //                        Criteria.ENCHANTED_ITEM.trigger((ServerPlayerEntity)player, itemStack3, i);
-                        //                    }
-
-                        //TODO: Add Lapis fuel consumption
-                        int fuelConsumed = Math.max(usedEnchantable.get() - EnchantabilityCosts.getEnchantabilityUsed(inputStack),0);
-                        BlockEntity entity = world.getBlockEntity(pos);
-                        if(entity instanceof EtableFuelLevelInterface fuelInterface){
-                            fuelInterface.enchantingDecisions$setFuelLevel(fuelInterface.enchantingDecisions$getFuelLevel() - fuelConsumed);
-                            fuel.set(fuelInterface.enchantingDecisions$getFuelLevel());
-                            EnchantingDecisions.LOGGER.info("Fuel Level {}", fuelInterface.enchantingDecisions$getFuelLevel());
-                        }
-                        inventory.removeStack(0);//delete input as the user has the output now
-                        world.playSound(null, pos, SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, SoundCategory.BLOCKS, 1.0F, world.random.nextFloat() * 0.1F + 0.9F);
-                        handler.sendContentUpdates();
-                    });
-                }
-            }
-            if (inputStack.isEmpty() && !outputstack.isEmpty()) {
-
-                this.context.run((world, pos) -> {
-
-                    for (int i = 0; i < enchantment.length; i++) {
-                        enchantment[i] = -1;
-                        enchantmentTier[i] = 0;
-                        selectedTier[i] = 0;
-                    }
-                    inventory.removeStack(2);
-                    handler.sendContentUpdates();
-                });
-            }
-
+        if(fuelStack.isEmpty()) {
+            return;
         }
-    }
-/*
-        Function: checkNewItem
-        Brief: used to read the type of item and enchantments of a new input selection, and find compatible and available enchantments
-        return: none
-        parameters:
-            Inventory, enchanting table inventory
-            ItemStack, input item slot to be scanned
- */
-    private void checkNewItem(Inventory inventory, ItemStack inputStack) {
         this.context.run((world, pos) -> {
-            ItemEnchantmentsComponent enchants = inputStack.getEnchantments();
-            this.enchantmentPower[0] = 1;
-            Registry<Enchantment> EnchantRegistry =  world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
-
-            Stream<Enchantment> availableEnchantments = Stream.empty();
-            for (BlockPos blockPos : EnchantingTableBlock.POWER_PROVIDER_OFFSETS) {
-                availableEnchantments = Stream.concat(availableEnchantments, checkAvailableEnchants(world, pos, blockPos));
+            BlockEntity entity = world.getBlockEntity(pos);
+            if(entity instanceof EtableFuelLevelInterface fuelInterface){
+                int fuelAdded = Math.min(fuelStack.getCount(), (64-fuel.get())/2);
+                fuelInterface.enchantingDecisions$setFuelLevel(fuel.get() + 2*fuelAdded);
+                fuel.set(fuelInterface.enchantingDecisions$getFuelLevel());
+                fuelStack.decrement(fuelAdded);
+                if(fuelStack.isEmpty()){
+                    inventory.removeStack(1);
+                }
             }
+        });
 
-            List<Enchantment> availableList = new java.util.ArrayList<>(availableEnchantments.toList());
+    }
 
 
-            int latest = 0;
+    /*
+            Function: onSetInput
+            Brief: used to read the type of item and enchantments when a new input is selected, and find compatible and available enchantments
+            return: none
+            parameters:
+                ItemStack, input item slot to be scanned
+     */
+    protected void onSetInput(ItemStack inputStack) {
 
+        if (!inputStack.isEmpty() && getItemEnchantability(inputStack) != 0 && !inputStack.isOf(Items.BOOK)) {
+            this.context.run((world, pos) -> {
+                ItemEnchantmentsComponent enchants = inputStack.getEnchantments();
+                this.enchantmentPower[0] = 1;
+                Registry<Enchantment> EnchantRegistry =  world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
+
+                Stream<Enchantment> availableEnchantments = Stream.empty();
+                for (BlockPos blockPos : EnchantingTableBlock.POWER_PROVIDER_OFFSETS) {
+                    availableEnchantments = Stream.concat(availableEnchantments, checkAvailableEnchants(world, pos, blockPos));
+                }
+
+                List<Enchantment> availableList = new java.util.ArrayList<>(availableEnchantments.toList());
+
+
+                int latest = 0;
+
+
+                for (int i = 0; i < enchantment.length; i++) {
+                    enchantment[i] = -1;
+                    enchantmentTier[i] = 0;
+                    selectedTier[i] = 0;
+                }
+
+                //iterate over the available list to
+                availableList.sort(Comparator.comparing(enchant -> enchant.description().getString()));
+                for (Enchantment available : availableList) {
+                    if(inputStack.canBeEnchantedWith(EnchantRegistry.getEntry(available), EnchantingContext.ACCEPTABLE)){
+                        boolean repeatflag = false;
+                        //checks for and handles repeated enchantments
+                        for (int i = 0; i < enchantment.length; i++) {
+                            if(enchantment[i] ==  EnchantRegistry.getRawId(available)) {
+                                enchantmentTier[i] += 1;
+                                if(enchantmentTier[i] > available.getMaxLevel()){
+                                    enchantmentTier[i] = available.getMaxLevel();
+                                }
+                                repeatflag = true;
+                            }
+                        }
+                        //if it is not a repeat, add it to the entry
+                        if(!repeatflag) {
+                            if(latest < 16) {
+                                enchantment[latest] = EnchantRegistry.getRawId(available);
+                                enchantmentTier[latest] = 1;
+                                latest++;
+                            }
+                        }
+                    }
+                }
+                for (RegistryEntry<Enchantment> enchantmentRegistryEntry : inputStack.getEnchantments().getEnchantments()){
+                    int level = enchants.getLevel(EnchantRegistry.getEntry(enchantmentRegistryEntry.value()));
+                    boolean intableflag = false;
+                    for( int i = 0; i < enchantment.length; i++){
+                        if(EnchantRegistry.get(enchantment[i]) == enchantmentRegistryEntry.value()){
+                            selectedTier[i] = level;
+                            intableflag = true;
+                        }
+                    }
+                    if(!intableflag){
+                        enchantment[latest] = EnchantRegistry.getRawId(enchantmentRegistryEntry.value());
+                        selectedTier[latest] = level;
+                        latest++;
+                    }
+                }
+
+                //create the proposed item
+                ItemStack proposed = inputStack.copy();
+                for(int i = 0; i < enchantment.length; i++) {
+                    if(selectedTier[i] > 0) {
+                        proposed.addEnchantment(EnchantRegistry.getEntry(EnchantRegistry.get(enchantment[i])), selectedTier[i]);
+                    }
+                }
+                inventory.setStack(2, proposed);
+
+
+                this.sendContentUpdates();
+            });
+        }
+
+    }
+
+
+
+    /*
+            Function: onTakeInput
+            Brief: used to reset the enchanting table when the input is removed
+            return: none
+            parameters:
+                none
+     */
+    protected void onTakeInput(){
+
+        this.context.run((world, pos) -> {
 
             for (int i = 0; i < enchantment.length; i++) {
                 enchantment[i] = -1;
                 enchantmentTier[i] = 0;
                 selectedTier[i] = 0;
             }
-
-            //iterate over the available list to
-            availableList.sort(Comparator.comparing(enchant -> enchant.description().getString()));
-            for (Enchantment available : availableList) {
-                if(inputStack.canBeEnchantedWith(EnchantRegistry.getEntry(available), EnchantingContext.ACCEPTABLE)){
-                    boolean repeatflag = false;
-                    //checks for and handles repeated enchantments
-                    for (int i = 0; i < enchantment.length; i++) {
-                        if(enchantment[i] ==  EnchantRegistry.getRawId(available)) {
-                            enchantmentTier[i] += 1;
-                            if(enchantmentTier[i] > available.getMaxLevel()){
-                                enchantmentTier[i] = available.getMaxLevel();
-                            }
-                            repeatflag = true;
-                        }
-                    }
-                    //if it is not a repeat, add it to the entry
-                    if(!repeatflag) {
-                        if(latest < 16) {
-                            enchantment[latest] = EnchantRegistry.getRawId(available);
-                            enchantmentTier[latest] = 1;
-                            latest++;
-                        }
-                    }
-                }
-            }
-            for (RegistryEntry<Enchantment> enchantmentRegistryEntry : inputStack.getEnchantments().getEnchantments()){
-                int level = enchants.getLevel(EnchantRegistry.getEntry(enchantmentRegistryEntry.value()));
-                boolean intableflag = false;
-                for( int i = 0; i < enchantment.length; i++){
-                    if(EnchantRegistry.get(enchantment[i]) == enchantmentRegistryEntry.value()){
-                        selectedTier[i] = level;
-                        intableflag = true;
-                    }
-                }
-                if(!intableflag){
-                    enchantment[latest] = EnchantRegistry.getRawId(enchantmentRegistryEntry.value());
-                    selectedTier[latest] = level;
-                    latest++;
-                }
-            }
-
-            //create the proposed item
-            ItemStack preposed = inputStack.copy();
-            for(int i = 0; i < enchantment.length; i++) {
-                if(selectedTier[i] > 0) {
-                    preposed.addEnchantment(EnchantRegistry.getEntry(EnchantRegistry.get(enchantment[i])), selectedTier[i]);
-                }
-            }
-            inventory.setStack(2, preposed);
-
-
+            inventory.removeStack(2);
             this.sendContentUpdates();
         });
     }
 
-    //Function: checkAvailableEnchants
-    //Parameters: World, the world data
-    //            BlockPos, the position of the enchanting table
-    //            BlockPos, the offset from the table to the block to be checked
-    //return: Stream, all enchantments contained in the block
-    //Description: takes a block to be check and checks if the block has access to the table and if it contains any enchantments the table can use
+
+
+    /*
+            Function: onTakeOutput
+            Brief: resets the enchanting table, updates player stats, consumes fuel, and plays sound after taking output
+            return: none
+            parameters:
+                PlayerEntity, the player that interacted with the output slot
+                ItemStack, the item stack stored in the output slot
+     */
+    protected void onTakeOutput(PlayerEntity player, ItemStack output){
+
+        this.context.run((world, pos) -> {
+            ItemStack inputStack = inventory.getStack(0);
+            this.enchantmentPower[0] = 0;
+            for (int i = 0; i < enchantment.length; i++) {
+                enchantment[i] = -1;
+                enchantmentTier[i] = 0;
+                selectedTier[i] = 0;
+            }
+            //Consume fuel
+            int fuelConsumed = Math.max(usedEnchantable.get() - EnchantabilityCosts.getEnchantabilityUsed(inputStack),0);
+            BlockEntity entity = world.getBlockEntity(pos);
+            if(entity instanceof EtableFuelLevelInterface fuelInterface){
+                fuelInterface.enchantingDecisions$setFuelLevel(fuelInterface.enchantingDecisions$getFuelLevel() - fuelConsumed);
+                fuel.set(fuelInterface.enchantingDecisions$getFuelLevel());
+            }
+
+            //only count an enchantment when the player increases the enchantments on the item
+            if(fuelConsumed > 0) {
+                //unable to implement achievements and sfx(?) without player entity
+                player.incrementStat(Stats.ENCHANT_ITEM);
+                if (player instanceof ServerPlayerEntity) {
+                    Criteria.ENCHANTED_ITEM.trigger((ServerPlayerEntity) player, output, 1);
+                }
+
+                world.playSound(null, pos, SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, SoundCategory.BLOCKS, 1.0F, world.random.nextFloat() * 0.1F + 0.9F);
+            }
+
+            inventory.removeStack(0);//delete input as the user has the output now
+            this.sendContentUpdates();
+        });
+    }
+
+
+/*
+    Function: checkAvailableEnchants
+    Parameters: World, the world data
+                BlockPos, the position of the enchanting table
+                BlockPos, the offset from the table to the block to be checked
+    return: Stream, all enchantments contained in the block
+    Description: takes a block to be check and checks if the block has access to the table and if it contains any enchantments the table can use
+
+ */
 
     private Stream<Enchantment> checkAvailableEnchants(World world, BlockPos tablePos, BlockPos providerOffset){
         //create container stream
@@ -393,18 +437,16 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
             if (enchantment[id & 0xFFFF] != -1) {
 
                 this.context.run((world, pos) -> {
-
                     Registry<Enchantment> EnchantRegistry = player.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
                     RegistryEntry<Enchantment> toBeAdded = EnchantRegistry.getEntry(EnchantRegistry.get(enchantment[buttonID]));
 
-                    int enchantability = getItemEnchantability();
-                    int prevTier;
-                    prevTier = selectedTier[buttonID];
+                    int enchantability = getItemEnchantability(getInput());
+                    int prevTier = selectedTier[buttonID];
 
-                    if (selection == 2 || selection == 3) {
+                    if (selection == 2) {//increase enchantment level
 
-                        if (EnchantmentHelper.isCompatible(newinventory.getStack(2).getEnchantments().getEnchantments(), toBeAdded)
-                            || newinventory.getStack(2).getEnchantments().getLevel(toBeAdded) > 0) {
+                        if (EnchantmentHelper.isCompatible(inventory.getStack(2).getEnchantments().getEnchantments(), toBeAdded)
+                            || inventory.getStack(2).getEnchantments().getLevel(toBeAdded) > 0) {
                             selectedTier[buttonID]++;
                             if (selectedTier[buttonID] > enchantmentTier[buttonID]) {
                                 selectedTier[buttonID] = prevTier;
@@ -412,15 +454,15 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                         }
 
 
-                    } else if (selection == 1) {
+                    } else if (selection == 1) {//decrement tier
                         selectedTier[buttonID]--;
                         if (selectedTier[buttonID] < 0) {
                             selectedTier[buttonID] = prevTier;
                         }
 
                     }
-
-                    ItemStack proposed = newinventory.getStack(0).copy();
+                    //create a copy of the input stack and remove all enchantments that are not curses, the reapply all enchants that are selected by the player
+                    ItemStack proposed = inventory.getStack(0).copy();
                     EnchantmentHelper.apply(
                             proposed, components -> components.remove(enchantment -> !enchantment.isIn(EnchantmentTags.CURSE)));
                     for (int i = 0; i < enchantment.length; i++) {
@@ -428,12 +470,14 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                             proposed.addEnchantment(EnchantRegistry.getEntry(EnchantRegistry.get(enchantment[i])), selectedTier[i]);
                         }
                     }
-                    int enchantabilityUsed = 0;
-                    enchantabilityUsed =  EnchantabilityCosts.getEnchantabilityUsed(proposed);
-                    proposed.set(ModComponents.PLAYER_ENCHANTED, Boolean.TRUE);
+                    int enchantabilityUsed = EnchantabilityCosts.getEnchantabilityUsed(proposed);
+                    proposed.set(ModComponents.PLAYER_ENCHANTED, Boolean.TRUE);//Mark the item as player enchanted to prevent player from grinding it into books on the grindstone
 
-                    if(enchantability >= enchantabilityUsed && selectedTier[buttonID] != prevTier && fuel.get() >= enchantabilityUsed+EnchantabilityCosts.getCursedEnchantability(proposed)) {
-                        newinventory.setStack(2, proposed);
+                    if(     enchantability >= enchantabilityUsed //does not exceed items enchantability
+                            && selectedTier[buttonID] != prevTier //the tier is actually changing
+//                            && fuel.get() >= Math.max(usedEnchantable.get() - EnchantabilityCosts.getEnchantabilityUsed(proposed),0)// the player as the fuel for the new selection
+                    ) {
+                        inventory.setStack(2, proposed);
                         usedEnchantable.set(enchantabilityUsed);
                         //click works
                         world.playSound(null, pos, SoundEvents.UI_BUTTON_CLICK.value(), SoundCategory.UI, 1.0F,  0.9F);
@@ -454,12 +498,12 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
     }
 
 
-    public int getItemEnchantability(){
-        EnchantableComponent comp  = this.newinventory.getStack(0).getComponents().get(DataComponentTypes.ENCHANTABLE);
+    public int getItemEnchantability(ItemStack item){
+        EnchantableComponent comp  = item.getComponents().get(DataComponentTypes.ENCHANTABLE);
         int enchantability;
 
         try{
-            enchantability = MiscToolEnchantabilities.getEnchantability(this.newinventory.getStack(0).getItem()).get();
+            enchantability = MiscToolEnchantabilities.getEnchantability(item.getItem()).get();
         } catch (NullPointerException e) {
             if(comp != null) {
                 enchantability = comp.value();
@@ -468,40 +512,17 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
             }
         }
 
-        /*
-        if(newinventory.getStack(0).isOf(Items.TRIDENT)){
-            return  20;
-        }
-        if(newinventory.getStack(0).isOf(Items.FISHING_ROD)){
-            return  16;
-        }
-        if(newinventory.getStack(0).isOf(Items.FLINT_AND_STEEL)){
-            return  16;
-        }
-        if(newinventory.getStack(0).isOf(Items.CROSSBOW)){
-            return  20;
-        }
-        if(newinventory.getStack(0).isOf(Items.BOW)){
-            return  20;
-        }
-        if(newinventory.getStack(0).isOf(Items.SHEARS)){
-            return  16;
-        }
-        if(newinventory.getStack(0).isOf(Items.SHIELD)){
-            return  20;
-        }
-        */
 
         return enchantability;
 
     }
 
-    public ItemStack getPreposed(){
-        return newinventory.getStack(2).copy();
+    public ItemStack getproposed(){
+        return inventory.getStack(2).copy();
     }
 
     public ItemStack getInput(){
-        return newinventory.getStack(0).copy();
+        return inventory.getStack(0).copy();
     }
 
     @Override
@@ -509,7 +530,7 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
         super.onClosed(player);
         this.context.run((world, pos) -> {
             for(int i = 0; i < 2; i++){
-                ItemStack stack = newinventory.removeStack(i);
+                ItemStack stack = inventory.removeStack(i);
                 boolean bl = player.isRemoved() && player.getRemovalReason() != Entity.RemovalReason.CHANGED_DIMENSION;
                 boolean bl2 = player instanceof ServerPlayerEntity serverPlayerEntity && serverPlayerEntity.isDisconnected();
                 if (bl || bl2) {
