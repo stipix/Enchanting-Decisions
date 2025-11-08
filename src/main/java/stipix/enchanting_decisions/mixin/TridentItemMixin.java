@@ -9,6 +9,8 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.MovementType;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
@@ -33,6 +35,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import stipix.enchanting_decisions.CustomTridentEntity;
+import stipix.enchanting_decisions.enchantments.EnchantmentRegistry;
 
 @Mixin(TridentItem.class)
 public abstract class TridentItemMixin extends Item implements ProjectileItem {
@@ -101,6 +105,7 @@ public abstract class TridentItemMixin extends Item implements ProjectileItem {
                         }
 
                         world.playSoundFromEntity(null, playerEntity, registryEntry.value(), SoundCategory.PLAYERS, 1.0F, 1.0F);
+                        playerEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOW_FALLING,60,0));
                         cir.setReturnValue(true);
                         cir.cancel();
                     }
@@ -108,25 +113,19 @@ public abstract class TridentItemMixin extends Item implements ProjectileItem {
                     {
                         if (world instanceof ServerWorld serverWorld) {
 
-                            boolean hasInfinity = false;
-                            for(RegistryEntry<Enchantment> e : stack.getEnchantments().getEnchantments()){
-                                if(e.matchesKey(Enchantments.INFINITY)){
-                                    hasInfinity = true;
-                                    break;
-                                }
-                            }
-                            TridentEntity tridentEntity;
+                            boolean hasInfinity = EnchantmentHelper.getLevel(world.getRegistryManager().getEntryOrThrow(Enchantments.INFINITY), stack)>0;
+                            CustomTridentEntity tridentEntity;
 
                             if(!hasInfinity){
                                 stack.damage(1, playerEntity);
                                 ItemStack itemStack = stack.splitUnlessCreative(1, playerEntity);
-                                tridentEntity = ProjectileEntity.spawnWithVelocity(TridentEntity::new, serverWorld, itemStack, playerEntity, 0.0F, 2.5F, 1.0F);
+                                tridentEntity = ProjectileEntity.spawnWithVelocity(CustomTridentEntity::new, serverWorld, itemStack, playerEntity, 0.0F, 2.5F, 1.0F);
                                 if (playerEntity.isInCreativeMode()) {
                                     tridentEntity.pickupType = PersistentProjectileEntity.PickupPermission.CREATIVE_ONLY;
                                 }
                             }else{
                                             stack.damage(2, playerEntity);
-                                        tridentEntity = ProjectileEntity.spawnWithVelocity(TridentEntity::new, serverWorld, stack, playerEntity, 0.0F, 2.5F, 0.0F);
+                                        tridentEntity = ProjectileEntity.spawnWithVelocity(CustomTridentEntity::new, serverWorld, stack, playerEntity, 0.0F, 2.5F, 0.0F);
                                 tridentEntity.pickupType = PersistentProjectileEntity.PickupPermission.DISALLOWED;
                             }
                                 world.playSoundFromEntity(null, tridentEntity, registryEntry.value(), SoundCategory.PLAYERS, 1.0F, 1.0F);

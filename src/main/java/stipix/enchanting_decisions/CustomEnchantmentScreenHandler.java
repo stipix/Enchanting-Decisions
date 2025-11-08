@@ -512,6 +512,29 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
             }
         }
 
+        /*
+        if(newinventory.getStack(0).isOf(Items.TRIDENT)){
+            return  20;
+        }
+        if(newinventory.getStack(0).isOf(Items.FISHING_ROD)){
+            return  16;
+        }
+        if(newinventory.getStack(0).isOf(Items.FLINT_AND_STEEL)){
+            return  16;
+        }
+        if(newinventory.getStack(0).isOf(Items.CROSSBOW)){
+            return  20;
+        }
+        if(newinventory.getStack(0).isOf(Items.BOW)){
+            return  20;
+        }
+        if(newinventory.getStack(0).isOf(Items.SHEARS)){
+            return  16;
+        }
+        if(newinventory.getStack(0).isOf(Items.SHIELD)){
+            return  20;
+        }
+        */
 
         return enchantability;
 

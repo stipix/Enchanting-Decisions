@@ -23,10 +23,7 @@ public abstract class ExperienceBarMixin {
     @Inject(method = "renderBar", at = @At("HEAD"), cancellable = true)
     public void renderBar(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci){
         ClientPlayerEntity clientPlayerEntity = this.client.player;
-        assert clientPlayerEntity != null;
-        if(!clientPlayerEntity.isRiding()){
-            ci.cancel();
-        }
+        ci.cancel();
 
     }
 
