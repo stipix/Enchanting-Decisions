@@ -5,6 +5,7 @@ import net.minecraft.enchantment.Enchantments;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.entry.RegistryEntry;
+import stipix.enchanting_decisions.enchantments.EnchantmentRegistry;
 
 import java.util.*;
 
@@ -52,6 +53,7 @@ public class EnchantabilityCosts {
     public static final EnchantabilityCost MENDING = new EnchantabilityCost(Enchantments.MENDING, new int[]{4, 8});
     public static final EnchantabilityCost VANISHING_CURSE = new EnchantabilityCost(Enchantments.VANISHING_CURSE, new int[]{-10});
 
+    public static final EnchantabilityCost WRATH = new EnchantabilityCost(EnchantmentRegistry.WRATH, new int[]{3,6,10});
 
 
     private static final Map<RegistryKey<Enchantment>, EnchantabilityCost> enchantabilityCosts = new HashMap<>();
@@ -101,7 +103,7 @@ public class EnchantabilityCosts {
         register(MENDING);
         register(VANISHING_CURSE);
 
-
+        register(WRATH);
     }
     public void register(EnchantabilityCost newEnchantability){
         enchantabilityCosts.put(newEnchantability.enchantment(), newEnchantability);

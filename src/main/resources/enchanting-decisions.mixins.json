@@ -9,10 +9,10 @@
     "EnchantingTableBlockMixin",
     "ExperienceOrbEntityMixin",
     "GrindstoneBlockMixin",
+    "LivingEntityMixin",
     "LootTableMixin",
     "MiscToolRepairMixin",
     "ToolMaterialMixin",
-    "TridentEntityMixin",
     "TridentItemMixin"
   ],
   "injectors": {
