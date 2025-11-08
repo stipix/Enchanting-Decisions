@@ -93,7 +93,7 @@ public class CustomAnvilScreenHandler extends ForgingScreenHandler {
         this.input.setStack(0, ItemStack.EMPTY);
         this.context.run((world, pos) -> {
             BlockState blockState = world.getBlockState(pos);
-            if (!player.isInCreativeMode() && blockState.isIn(BlockTags.ANVIL) && player.getRandom().nextFloat() < 0.99F) { //99% chance of damaging
+            if (!player.isInCreativeMode() && blockState.isIn(BlockTags.ANVIL) && player.getRandom().nextFloat() < 0.10F) { //99% chance of damaging
                 BlockState blockState2 = AnvilBlock.getLandingState(blockState);
                 if (blockState2 == null) {
                     world.removeBlock(pos, false);

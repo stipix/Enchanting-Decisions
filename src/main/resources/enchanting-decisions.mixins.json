@@ -7,12 +7,12 @@
     "ArmorMaterialMixin",
     "EnchantingTableBlockEntityMixin",
     "EnchantingTableBlockMixin",
+    "EnchantmentHelperMixin",
     "ExperienceOrbEntityMixin",
     "GrindstoneBlockMixin",
     "LootTableMixin",
     "MiscToolRepairMixin",
     "ToolMaterialMixin",
-    "TridentEntityMixin",
     "TridentItemMixin"
   ],
   "injectors": {

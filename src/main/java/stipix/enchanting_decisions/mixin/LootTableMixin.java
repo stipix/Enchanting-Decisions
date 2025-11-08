@@ -24,6 +24,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import java.util.List;
@@ -33,26 +34,52 @@ import java.util.Optional;
 public class LootTableMixin {
 
 
-    @ModifyArg(method = "supplyInventory",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/inventory/Inventory;setStack(ILnet/minecraft/item/ItemStack;)V"),
-            index = 1
-    )
-    private ItemStack injected(ItemStack itemStack) {
-        ItemStack itemStack2 = itemStack.copy();
-        if(itemStack.isOf(Items.ENCHANTED_BOOK)){
+//    @ModifyArg(method = "supplyInventory",
+//            at = @At(value = "INVOKE", target = "Lnet/minecraft/inventory/Inventory;setStack(ILnet/minecraft/item/ItemStack;)V"),
+//            index = 1
+//    )
+//    private ItemStack injected(ItemStack itemStack) {
+//        ItemStack itemStack2 = itemStack.copy();
+//        if(itemStack.isOf(Items.ENCHANTED_BOOK)){
+//
+//            EnchantmentHelper.apply(
+//                    itemStack2, components -> components.remove(enchantment -> !enchantment.isIn(EnchantmentTags.CURSE)));
+//
+//            Object enchant = itemStack.getOrDefault(DataComponentTypes.STORED_ENCHANTMENTS, 0);
+//            if(enchant instanceof ItemEnchantmentsComponent) {
+//                for (RegistryEntry<Enchantment> enchantmentRegistry : ((ItemEnchantmentsComponent) enchant).getEnchantments()) {
+//                    if(!enchantmentRegistry.isIn(EnchantmentTags.CURSE)) {
+//                        itemStack2.addEnchantment(enchantmentRegistry, 1);
+//                    }
+//                }
+//            }
+//        }
+//        return itemStack2;
+//    }
 
-            EnchantmentHelper.apply(
-                    itemStack2, components -> components.remove(enchantment -> !enchantment.isIn(EnchantmentTags.CURSE)));
-
-            Object enchant = itemStack.getOrDefault(DataComponentTypes.STORED_ENCHANTMENTS, 0);
-            if(enchant instanceof ItemEnchantmentsComponent) {
-                for (RegistryEntry<Enchantment> enchantmentRegistry : ((ItemEnchantmentsComponent) enchant).getEnchantments()) {
-                    if(!enchantmentRegistry.isIn(EnchantmentTags.CURSE)) {
-                        itemStack2.addEnchantment(enchantmentRegistry, 1);
-                    }
-                }
-            }
-        }
-        return itemStack2;
-    }
+//    @Inject(method = "generateLoot(Lnet/minecraft/loot/context/LootContext;)Lit/unimi/dsi/fastutil/objects/ObjectArrayList;", at = @At("RETURN"))
+//    void generateLoot(LootContext lootContext, CallbackInfoReturnable<List<ItemStack>> cir, @Local ObjectArrayList<ItemStack> objectArrayList) {
+//        for(int i = 0; i < objectArrayList.size(); i++) {
+//            ComponentChanges changedEnchants = objectArrayList.get(i).getComponentChanges();
+//
+//            if(changedEnchants != null && changedEnchants.get(DataComponentTypes.STORED_ENCHANTMENTS) != null){
+//            }
+//            ItemStack itemStack = objectArrayList.get(i);
+//            if(itemStack.isOf(Items.ENCHANTED_BOOK)) {
+//
+//                EnchantmentHelper.apply(
+//                        itemStack, components -> components.remove(enchantment -> !enchantment.isIn(EnchantmentTags.CURSE)));
+//
+//                Object enchant = itemStack.getOrDefault(DataComponentTypes.STORED_ENCHANTMENTS, 0);
+//                if (enchant instanceof ItemEnchantmentsComponent) {
+//                    for (RegistryEntry<Enchantment> enchantmentRegistry : ((ItemEnchantmentsComponent) enchant).getEnchantments()) {
+//                        if (!enchantmentRegistry.isIn(EnchantmentTags.CURSE)) {
+//                            itemStack.addEnchantment(enchantmentRegistry, 1);
+//                        }
+//                    }
+//                    objectArrayList.set(i, itemStack);
+//                }
+//            }
+//        }
+//    }
 }
