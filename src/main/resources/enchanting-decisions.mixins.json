@@ -10,6 +10,7 @@
     "EnchantmentHelperMixin",
     "ExperienceOrbEntityMixin",
     "GrindstoneBlockMixin",
+    "LivingEntityMixin",
     "LootTableMixin",
     "MiscToolRepairMixin",
     "ToolMaterialMixin",

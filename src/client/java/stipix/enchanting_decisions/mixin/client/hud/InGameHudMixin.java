@@ -7,6 +7,9 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.passive.DonkeyEntity;
+import net.minecraft.entity.passive.HorseEntity;
+import net.minecraft.entity.passive.MuleEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
@@ -109,7 +112,9 @@ public abstract class InGameHudMixin
         if (playerEntity != null) {
             if(playerEntity.getVehicle()!=null) //in case the player is riding something like a horse where they need the bar
             {
-                heightOffset=39; //shifting the offset to account for mount status bar
+                if(playerEntity.getVehicle() instanceof HorseEntity || playerEntity.getVehicle() instanceof MuleEntity || playerEntity.getVehicle() instanceof DonkeyEntity){
+                    heightOffset=39; //shifting the offset to account for mount status bar
+                }
             }
 
             int i = MathHelper.ceil(playerEntity.getHealth());

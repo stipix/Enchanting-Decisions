@@ -2,9 +2,9 @@ package stipix.enchanting_decisions;
 
 import net.fabricmc.api.ModInitializer;
 
-import net.minecraft.item.Items;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import stipix.enchanting_decisions.enchantments.EnchantmentRegistry;
 
 /*TODO: Replace villager behavior
         Edit Loot tables
@@ -29,6 +29,7 @@ public class EnchantingDecisions implements ModInitializer {
 		// Proceed with mild caution.
         ModComponents.onInitialize();
         ModScreenHandlers.registerScreenHandlers();
+        EnchantmentRegistry.registerModEnchantments();
         EnchantabilityCosts costs = new EnchantabilityCosts();
         MiscToolEnchantabilities miscToolEnchantabilities = new MiscToolEnchantabilities();
 		LOGGER.info("Enchanting decisions initialized!");
