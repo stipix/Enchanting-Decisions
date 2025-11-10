@@ -17,6 +17,7 @@ import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.EnchantmentTags;
 import net.minecraft.screen.*;
 import net.minecraft.screen.slot.Slot;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
@@ -82,6 +83,10 @@ public class CustomGrindstoneScreenHandler extends ScreenHandler {
                                 }
                             } else if (input.getStack(1 - i).hasEnchantments()) {
                                 if (modifyInput) {
+                                    if(player instanceof ServerPlayerEntity) {
+                                        ModCriteria.GRIND_DOWN_CRITERION.trigger((ServerPlayerEntity) player);
+                                    }
+
                                     input.setStack(1 - i, ItemStack.EMPTY);
                                     onContentChanged(inventory);
 

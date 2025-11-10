@@ -1,4 +1,4 @@
-package name.modid.mixin;
+package stipix.enchanting_decisions.mixin;
 
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;

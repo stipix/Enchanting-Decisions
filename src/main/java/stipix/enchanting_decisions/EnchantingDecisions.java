@@ -29,6 +29,7 @@ public class EnchantingDecisions implements ModInitializer {
 		// Proceed with mild caution.
         ModComponents.onInitialize();
         ModScreenHandlers.registerScreenHandlers();
+        ModCriteria.init();
         EnchantmentRegistry.registerModEnchantments();
         EnchantabilityCosts costs = new EnchantabilityCosts();
         MiscToolEnchantabilities miscToolEnchantabilities = new MiscToolEnchantabilities();

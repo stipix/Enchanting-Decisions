@@ -1,0 +1,24 @@
+{
+  "criteria": {
+    "enchanting_root": {
+      "trigger": "minecraft:tick"
+    }
+  },
+  "display": {
+    "announce_to_chat": false,
+    "background": "minecraft:gui/advancements/backgrounds/stone",
+    "description": "Advancements for Enchanting Decisions",
+    "icon": {
+      "count": 1,
+      "id": "minecraft:enchanted_book"
+    },
+    "show_toast": false,
+    "title": "Enchanting Desicions"
+  },
+  "requirements": [
+    [
+      "enchanting_root"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

@@ -4,6 +4,7 @@ package stipix.enchanting_decisions;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import net.fabricmc.fabric.api.item.v1.EnchantingContext;
@@ -16,6 +17,7 @@ import net.minecraft.block.entity.ChiseledBookshelfBlockEntity;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.EnchantableComponent;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
+import net.minecraft.component.type.LoreComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
@@ -36,6 +38,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.stat.Stats;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
@@ -139,23 +142,7 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
             public boolean canInsert(ItemStack stack) {
                 return false;
             }
-//            @Override
-//            public ItemStack getStack() {
-//                if(fuel.get() >= usedEnchantable.get()){
-//                    return super.getStack();
-//                }else {
-//                    return ItemStack.EMPTY;
-//                }
-//            }
-//            @Override
-//            public boolean isEnabled(){
-//
-//                if(fuel.get() >= usedEnchantable.get()){
-//                    return super.isEnabled();
-//                }else {
-//                    return false;
-//                }
-//            }
+
             @Override
             public boolean canTakeItems(PlayerEntity player) {
                 if(fuel.get() >= usedEnchantable.get()){
@@ -473,6 +460,17 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
                     int enchantabilityUsed = EnchantabilityCosts.getEnchantabilityUsed(proposed);
                     proposed.set(ModComponents.PLAYER_ENCHANTED, Boolean.TRUE);//Mark the item as player enchanted to prevent player from grinding it into books on the grindstone
 
+                    //Remove the wild enchantment text as the item can no longer be harvested
+                    List<Text> lines = new java.util.ArrayList<>(Objects.requireNonNull(proposed.getComponents().get(DataComponentTypes.LORE)).lines());
+                    lines.removeIf((text) ->
+                               text.equals(Text.translatable("enchanting-decisions.natural_enchantment1"))
+                            || text.equals(Text.translatable("enchanting-decisions.natural_enchantment2"))
+                    );
+
+                    LoreComponent newLore = new LoreComponent(lines);
+                    proposed.set(DataComponentTypes.LORE, newLore);
+
+
                     if(     enchantability >= enchantabilityUsed //does not exceed items enchantability
                             && selectedTier[buttonID] != prevTier //the tier is actually changing
 //                            && fuel.get() >= Math.max(usedEnchantable.get() - EnchantabilityCosts.getEnchantabilityUsed(proposed),0)// the player as the fuel for the new selection
@@ -512,29 +510,6 @@ public class CustomEnchantmentScreenHandler extends ScreenHandler{
             }
         }
 
-        /*
-        if(newinventory.getStack(0).isOf(Items.TRIDENT)){
-            return  20;
-        }
-        if(newinventory.getStack(0).isOf(Items.FISHING_ROD)){
-            return  16;
-        }
-        if(newinventory.getStack(0).isOf(Items.FLINT_AND_STEEL)){
-            return  16;
-        }
-        if(newinventory.getStack(0).isOf(Items.CROSSBOW)){
-            return  20;
-        }
-        if(newinventory.getStack(0).isOf(Items.BOW)){
-            return  20;
-        }
-        if(newinventory.getStack(0).isOf(Items.SHEARS)){
-            return  16;
-        }
-        if(newinventory.getStack(0).isOf(Items.SHIELD)){
-            return  20;
-        }
-        */
 
         return enchantability;
 

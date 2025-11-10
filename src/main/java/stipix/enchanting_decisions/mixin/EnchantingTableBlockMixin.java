@@ -5,9 +5,11 @@ import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.ChiseledBookshelfBlockEntity;
+import net.minecraft.block.entity.EnchantingTableBlockEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.tag.BlockTags;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.collection.DefaultedList;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import stipix.enchanting_decisions.CustomEnchantmentScreenHandler;
@@ -23,6 +25,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import stipix.enchanting_decisions.ModCriteria;
 
 @Mixin(EnchantingTableBlock.class)
 public abstract class EnchantingTableBlockMixin {

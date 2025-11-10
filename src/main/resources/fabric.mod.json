@@ -15,6 +15,9 @@
 	"icon": "assets/enchanting-decisions/icon.png",
 	"environment": "*",
 	"entrypoints": {
+        "fabric-datagen": [
+            "stipix.enchanting_decisions.ModDataGenerator"
+        ],
 		"main": [
 			"stipix.enchanting_decisions.EnchantingDecisions"
 		],

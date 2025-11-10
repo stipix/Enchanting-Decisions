@@ -4,6 +4,8 @@
   "enchantment.enchanting-decisions.test": "You're Yuge Now",
   "enchanting-decisions.player_enchanted": "Player-Enchanted",
   "enchanting-decisions.grindstone_title": "Split, Remove & Transmute",
-  "enchantment.enchanting-decisions.wrath": "Wrath (Placeholder name)"
+  "enchantment.enchanting-decisions.wrath": "Wrath (Placeholder name)",
+  "enchanting-decisions.natural_enchantment1": "Usable enchantment energy can",
+  "enchanting-decisions.natural_enchantment2": "be harvested from this item."
 
 }

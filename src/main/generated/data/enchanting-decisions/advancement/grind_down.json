@@ -1,0 +1,22 @@
+{
+  "parent": "minecraft:enchanting-decisions/root",
+  "criteria": {
+    "grind_down": {
+      "trigger": "enchanting-decisions:grind_down"
+    }
+  },
+  "display": {
+    "description": "Use a grindstone to harvest a natural enchantment",
+    "icon": {
+      "count": 1,
+      "id": "minecraft:grindstone"
+    },
+    "title": "This is Mine Now"
+  },
+  "requirements": [
+    [
+      "grind_down"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

@@ -5,6 +5,7 @@
   "mixins": [
     "AnvilBlockMixin",
     "ArmorMaterialMixin",
+    "ChiseledBookShelfBlockMixin",
     "EnchantingTableBlockEntityMixin",
     "EnchantingTableBlockMixin",
     "EnchantmentHelperMixin",

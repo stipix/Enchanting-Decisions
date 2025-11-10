@@ -1,0 +1,22 @@
+{
+  "parent": "minecraft:enchanting-decisions/root",
+  "criteria": {
+    "power_up": {
+      "trigger": "enchanting-decisions:power_up"
+    }
+  },
+  "display": {
+    "description": "Add a new enchanted book to an enchantment table's library",
+    "icon": {
+      "count": 1,
+      "id": "minecraft:chiseled_bookshelf"
+    },
+    "title": "Powered Up"
+  },
+  "requirements": [
+    [
+      "power_up"
+    ]
+  ],
+  "sends_telemetry_event": true
+}
