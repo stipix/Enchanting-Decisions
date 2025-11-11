@@ -1,22 +1,28 @@
 package stipix.enchanting_decisions;
 
+import net.minecraft.block.BlockState;
+import net.minecraft.command.argument.EntityAnchorArgumentType;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ProjectileDeflection;
+import net.minecraft.entity.*;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.damage.DamageSources;
+import net.minecraft.entity.damage.DamageTypes;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.predicate.entity.EntityFlagsPredicate;
+import net.minecraft.predicate.entity.EntityPredicate;
+import net.minecraft.predicate.entity.LocationPredicate;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -26,19 +32,22 @@ import net.minecraft.storage.ReadView;
 import net.minecraft.storage.WriteView;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.include.com.google.common.base.Predicate;
 import stipix.enchanting_decisions.enchantments.EnchantmentRegistry;
 
 public class CustomTridentEntity extends PersistentProjectileEntity {
     private static final TrackedData<Byte> LOYALTY = DataTracker.registerData(CustomTridentEntity.class, TrackedDataHandlerRegistry.BYTE);
     private int IMPALING=0;
     private int WRATH=0;
+    private int LOYAL2=0;
     private boolean INFINITY=false;
-    private int KNOCKBACK=0;
-
+    private boolean CHANNELING=false;
     private static final TrackedData<Boolean> ENCHANTED = DataTracker.registerData(CustomTridentEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final float DRAG_IN_WATER = 0.99F;
     private static final boolean DEFAULT_DEALT_DAMAGE = false;
@@ -62,9 +71,13 @@ public class CustomTridentEntity extends PersistentProjectileEntity {
         if(EnchantmentHelper.getLevel(world.getRegistryManager().getEntryOrThrow(Enchantments.INFINITY), stack)!=0){ // DECLARES/INITIALIZES INFINITY LEVEL
             INFINITY=true;
         }
-        if(EnchantmentHelper.getLevel(world.getRegistryManager().getEntryOrThrow(Enchantments.KNOCKBACK), stack)!=0){ // DECLARES/INITIALIZES INFINITY LEVEL
-            KNOCKBACK=EnchantmentHelper.getLevel(world.getRegistryManager().getEntryOrThrow(Enchantments.KNOCKBACK), stack);
+        if(EnchantmentHelper.getLevel(world.getRegistryManager().getEntryOrThrow(Enchantments.CHANNELING), stack)!=0){ // DECLARES/INITIALIZES INFINITY LEVEL
+            CHANNELING=true;
         }
+        if(EnchantmentHelper.getLevel(world.getRegistryManager().getEntryOrThrow(Enchantments.LOYALTY), stack)!=0){ // DECLARES/INITIALIZES INFINITY LEVEL
+            LOYAL2=EnchantmentHelper.getLevel(world.getRegistryManager().getEntryOrThrow(Enchantments.LOYALTY), stack);
+        }
+
     }
 
     public CustomTridentEntity(World world, double x, double y, double z, ItemStack stack) {
@@ -82,50 +95,101 @@ public class CustomTridentEntity extends PersistentProjectileEntity {
 
     @Override
     public void tick() {
-        if(this.inGroundTime > 0 && INFINITY) {
-                this.discard();
+        if (this.inGroundTime > 0 && INFINITY) {
+            this.discard();
         }
-
         if (this.inGroundTime > 4) {
-            if (WRATH == 0) {
+            if (WRATH > 0 && this.inGroundTime > ((WRATH+1) * 30)) {
+                this.dealtDamage = true;
+            } else if (WRATH == 0) {
                 this.dealtDamage = true;
             }
         }
 
+        //TODO - WRATH
+        if (WRATH > 0) {
+
+            int attackInterval=(44-(WRATH*4))*(CHANNELING?2:1);
+            if (getEntityWorld() instanceof ServerWorld serverWorld) {
 
 
-        //TODO - Get WRATH to work
-        try{
-            this.getEntityWorld().sendEntityDamage(this.getEntityCollision(this.getEntityPos(),this.getEntityPos()).getEntity(), new DamageSource(null));
+                // Marks enemies to receive damage momentarily
+                if ((this.inGroundTime+30) % attackInterval == (attackInterval-9)) {
+
+                    for (Entity badGuy : this.getEntityWorld().getOtherEntities(this.getEntity(), this.getBoundingBox().expand(0.6f * WRATH))) {
+                        if (badGuy instanceof LivingEntity livingEntity && !badGuy.equals(getOwner())) {
+                            serverWorld.spawnParticles(ParticleTypes.SONIC_BOOM,
+                                    livingEntity.getX(), livingEntity.getY()+1, livingEntity.getZ(), 1, 0, 0.2f, 0, 2.4f);
+                            livingEntity.addCommandTag("Wrath-targeted");
+                        }
+                    }
+
+                    //Particle for the TridentEntity itself
+                    serverWorld.spawnParticles(ParticleTypes.SONIC_BOOM,
+                            this.getX(), this.getY(), this.getZ(), 1, 0, 0.08f, 0, 0.3f);
+                }
+
+                if ((this.inGroundTime+30) % attackInterval == (attackInterval-3)) {
+                    this.playSound(SoundEvents.ENTITY_ILLUSIONER_CAST_SPELL, 1f, 1.12f);
+                }
 
 
-        }catch (NullPointerException nullPointerException){
-            //oops
-        }
+                    // Applies damage, works with Channeling
+                if ((this.inGroundTime+30) % attackInterval == 0 && this.inGroundTime > 0) {
+                    for(Entity badGuy: serverWorld.getOtherEntities(this.getEntity(), this.getBoundingBox().expand(25), (Predicate<Entity>) entity -> {
+                        assert entity != null;
+                        return entity.getCommandTags().contains("Wrath-targeted");
+                        }))
+                    {
+
+                        if (badGuy instanceof LivingEntity livingEntity && !badGuy.equals(getOwner())) {
+                            serverWorld.spawnParticles(ParticleTypes.SPLASH,
+                                    livingEntity.getX(), livingEntity.getY() + 1, livingEntity.getZ(), 50, 0, 1, 0, 0.7f);
+                            badGuy.playSound(SoundEvents.ENTITY_PLAYER_SPLASH_HIGH_SPEED, 0.3f, 1.08f);
+
+                            livingEntity.damage(serverWorld, new DamageSource(serverWorld.getRegistryManager().getEntryOrThrow(DamageTypes.INDIRECT_MAGIC)), 2 + ((float) WRATH / 2));
+                            livingEntity.removeCommandTag("Wrath-targeted");
+                                //livingEntity.addVelocity(0, 0.5f, 0);
+                                //livingEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS,40,4));
+
+                            if (CHANNELING) {
+                                BlockPos abovePos = livingEntity.getBlockPos().up();
+                                    // Check if the block above is air or transparent
+                                if (serverWorld.isSkyVisible(abovePos)) {
+                                    EntityType.LIGHTNING_BOLT.spawn(serverWorld, livingEntity.getBlockPos(), SpawnReason.TRIGGERED);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+    }
 
         Entity entity = this.getOwner();
-        int loyaltyLevel = this.dataTracker.get(LOYALTY);
-        if (loyaltyLevel > 0 && (this.dealtDamage || this.isNoClip()) && entity != null) {
-            if (!this.isOwnerAlive()) {
+        if (LOYAL2 > 0 && (this.dealtDamage || this.isNoClip()) && entity != null) { //Loyalty
+
+            if (!this.isOwnerAlive()) {//Drop Trident because Loyalty won't apply
                 if (this.getEntityWorld() instanceof ServerWorld serverWorld && this.pickupType == PersistentProjectileEntity.PickupPermission.ALLOWED) {
                     this.dropStack(serverWorld, this.asItemStack(), 0.1F);
                 }
 
                 this.discard();
-            } else {
+            } else {//Loyalty applies
                 if (!(entity instanceof PlayerEntity) && this.getEntityPos().distanceTo(entity.getEyePos()) < entity.getWidth() + 1.0) {
                     this.discard();
                     return;
                 }
 
+
                 this.setNoClip(true);
                 this.setGlowing(true);
                 Vec3d vec3d = entity.getEyePos().subtract(this.getEntityPos());
-                this.setPos(this.getX(), this.getY() + vec3d.y * 0.015 * loyaltyLevel, this.getZ());
-                double d = 0.05 * loyaltyLevel;
+                this.lookAt(EntityAnchorArgumentType.EntityAnchor.EYES, entity.getEyePos());
+                //this.setPos(this.getX(), this.getY() + vec3d.y * 0.015 * LOYAL2, this.getZ());
+                double d = 0.05 * LOYAL2;
                 this.setVelocity(this.getVelocity().multiply(0.95).add(vec3d.normalize().multiply(d)));
                 if (this.returnTimer == 0) {
-                    this.playSound(SoundEvents.ITEM_TRIDENT_RETURN, 10.0F, 1.0F);
+                    this.playSound(SoundEvents.ITEM_TRIDENT_RETURN, 8, 1.0f);
                 }
 
                 this.returnTimer++;
@@ -152,15 +216,12 @@ public class CustomTridentEntity extends PersistentProjectileEntity {
 
     @Override
     protected void onEntityHit(EntityHitResult entityHitResult) {
-        //this.getEntityWorld().spawnEntity(CustomTridentEntity)
-
-
         Entity entity = entityHitResult.getEntity();
 
         float attackDamage;
         if(entity.isTouchingWaterOrRain() && IMPALING>0){ //+ Impaling effect
             attackDamage = 8.0F+(IMPALING*2);
-            ((ServerWorld)getEntityWorld()).spawnParticles(ParticleTypes.CRIT,
+            ((ServerWorld)getEntityWorld()).spawnParticles(ParticleTypes.ENCHANTED_HIT,
                     entity.getX(), entity.getY(), entity.getZ(), 2*(int)attackDamage, 0, 1, 0, 0.4f);
             getEntityWorld().playSound(this, entity.getBlockPos(),SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, SoundCategory.MASTER);
         }else{
@@ -185,27 +246,17 @@ public class CustomTridentEntity extends PersistentProjectileEntity {
             if (entity instanceof LivingEntity livingEntity) {
                 knockback(livingEntity, damageSource);
                 this.onHit(livingEntity);
+
             }
         }
 
+        if(WRATH==0){
+            this.dealtDamage = true;
+        }
+
+        this.setVelocity(this.getVelocity().multiply(0.02, 0.2, 0.02).add(0,-0.3,0));
         this.deflect(ProjectileDeflection.SIMPLE, entity, this.owner, false);
-        this.setVelocity(this.getVelocity().multiply(0.02, 0.2, 0.02));
         this.playSound(SoundEvents.ITEM_TRIDENT_HIT, 1.0F, 1.0F);
-
-        if(WRATH>0) {//TODO - rapid fire/recursion
-            if (this.getEntityWorld() instanceof ServerWorld serverWorld) {
-                if (this.getOwner() instanceof LivingEntity livingOwner) {
-                    CustomTridentEntity tridentEntity;
-                    tridentEntity = ProjectileEntity.spawnWithVelocity(CustomTridentEntity::new, serverWorld, this.getWeaponStack(), livingOwner, 0.0F, 2.5F, 0.0F);
-                    tridentEntity.setRotation(this.getYaw(), this.getPitch());
-                    tridentEntity.setGlowing(true);
-                    tridentEntity.setPosition(entityHitResult.getEntity().getX(), entityHitResult.getEntity().getY() + 2, entityHitResult.getEntity().getZ());
-                    if (livingOwner instanceof PlayerEntity playerEntity) {
-                        //tridentEntity.changeLookDirection(playerEntity.getHeadYaw(), playerEntity.getPitch());
-                    }
-                }
-            }
-        }
 
         if(INFINITY){
             this.discard();

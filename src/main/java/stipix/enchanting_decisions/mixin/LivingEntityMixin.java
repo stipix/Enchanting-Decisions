@@ -1,4 +1,4 @@
-package name.modid.mixin;
+package stipix.enchanting_decisions.mixin;
 
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -16,7 +16,10 @@ import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.DamageTypeTags;
 import net.minecraft.registry.tag.EnchantmentTags;
+import net.minecraft.screen.slot.Slot;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -25,6 +28,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import stipix.enchanting_decisions.enchantments.EnchantmentRegistry;
 
 import java.util.Arrays;
 
@@ -33,19 +37,18 @@ public abstract class LivingEntityMixin { //"extends Entity"
 
     @Shadow @Nullable public abstract LivingEntity getAttacker();
 
-    //public LivingEntityMixin(EntityType<?> type, World world) {
-    //    super(type, world);
-    //}
-
     @Shadow
     public abstract @Nullable LivingEntity getEntity();
+
+    @Shadow
+    protected abstract float getJumpVelocity();
 
     @Redirect(method = "damageEquipment", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;damage(ILnet/minecraft/entity/LivingEntity;Lnet/minecraft/entity/EquipmentSlot;)V"))
     protected void reduceDurability(ItemStack instance, int amount, LivingEntity entity, EquipmentSlot slot){
         if(slot.isArmorSlot()) {
                 World world = entity.getEntityWorld();
                 if(EnchantmentHelper.getLevel(world.getRegistryManager().getEntryOrThrow(Enchantments.THORNS), instance)!=0){
-                    instance.damage(50, entity, slot);
+                    instance.damage(1, entity, slot);
                     return;
                 }
                 instance.damage(amount, entity, slot);
@@ -86,16 +89,31 @@ public abstract class LivingEntityMixin { //"extends Entity"
         ci.cancel();
     }
 
+    /*
+    @Inject(method = "jump", at = @At("HEAD"),cancellable = true)
+    public void jump(CallbackInfo ci) {
 
+        //if(this.getEntity().getEquippedStack(EquipmentSlot.FEET)!=null){
+        //    if(EnchantmentHelper.getLevel(this.getEntity().getRegistryManager().getEntryOrThrow(EnchantmentRegistry.CLOUD_HOPPER), this.getEntity().getEquippedStack(EquipmentSlot.FEET))!=0);
+        //        if(!this.getEntity().isOnGround()){
+        //            int eel;
+        //        }
+        //}
 
-/*
-    @Inject(method = "damageArmor", at = @At("HEAD"), cancellable = true)
-    private void hurtAndBreak(DamageSource source, float amount, CallbackInfo ci) {
+        float f = this.getJumpVelocity();
+        if (!(f <= 1.0E-5F)) {
+            Vec3d vec3d = this.getEntity().getVelocity();
+            this.getEntity().setVelocity(vec3d.x, Math.max(f, vec3d.y), vec3d.z);
+            if (this.getEntity().isSprinting()) {
+                float g = this.getEntity().getYaw() * (float) (Math.PI / 180.0);
+                this.getEntity().addVelocityInternal(new Vec3d(-MathHelper.sin(g) * 0.2, 0.0, MathHelper.cos(g) * 0.2));
+            }
 
-
-        ci.cancel();
+            this.getEntity().velocityDirty = true;
+        }
     }
-*/
+
+     */
 
 
 }

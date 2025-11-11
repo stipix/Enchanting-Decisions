@@ -11,7 +11,6 @@ public class EnchantingDecisionsClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		// This entrypoint is suitable for setting up client-specific logic, such as rendering.
         HandledScreens.register(ModScreenHandlers.CUSTOM_ENCHANTMENT_SCREEN_HANDLER, CustomEnchantmentScreen::new);
-        HandledScreens.register(ModScreenHandlers.CUSTOM_ANVIL_SCREEN_HANDLER, CustomAnvilScreen::new);
 
     }
 }
